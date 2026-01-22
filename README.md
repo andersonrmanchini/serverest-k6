@@ -90,6 +90,12 @@ Contém **todas** as configurações de performance (totalmente documentado):
 npm run test
 ```
 
+### Teste com Relatório HTML 📊
+```bash
+npm run test:report      # Rodar testes + gerar relatório
+npm run report:open      # Abrir relatório no navegador
+```
+
 ### Outros Tipos
 ```bash
 npm run test:smoke      # Validação rápida (1 VU, 10s)
@@ -98,6 +104,37 @@ npm run test:stress     # Encontrar limite (50 VUs, 5m)
 npm run test:spike      # Picos de tráfego (100 VUs, 1m)
 npm run test:soak       # Longa duração (20 VUs, 30m)
 ```
+
+### Relatórios
+```bash
+npm run test:report       # Teste padrão + relatório
+npm run test:report:smoke # Teste smoke + relatório
+npm run report:generate   # Gerar relatório manualmente
+npm run report:open       # Abrir relatório no navegador
+```
+
+---
+
+## 📊 Relatórios HTML
+
+Todos os testes geram **relatórios HTML profissionais** (estilo Playwright):
+
+**Features:**
+- 🎨 Dark theme moderno
+- 📈 Dashboard com principais métricas
+- ✅ Detalhes de cada check
+- 📱 Responsivo para mobile
+- ⚡ Sem dependências externas
+
+**Exemplo:**
+```bash
+npm run test:report:smoke  # 10 segundos
+npm run report:open        # Abre no navegador
+```
+
+👉 Veja [QUICK_REPORT.md](QUICK_REPORT.md) para guia rápido ou [REPORTS.md](REPORTS.md) para documentação completa.
+
+---
 
 ### Testes Específicos
 ```bash
