@@ -1,0 +1,59 @@
+# Node Modules and Dependencies
+/node_modules
+/dist
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.*.development
+.env.*.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.sublime-project
+.sublime-workspace
+
+# Test Results
+/test-results
+/coverage
+*.lcov
+results.json
+results.csv
+
+# k6 specific
+load-testing-summary.json
+k6-summary.html
+
+# OS specific
+.AppleDouble
+.AppleDB
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.tmp/
+
+# Build artifacts
+*.js
+*.jsx
+!webpack.config.js
+!build.js
+dist/
+build/
+
+# Logs
+logs/
+*.log

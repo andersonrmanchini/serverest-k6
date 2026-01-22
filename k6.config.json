@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "K6 Performance Test Configuration",
+  "description": "Configurações de performance e thresholds para testes K6. Este arquivo define como os testes devem se comportar.",
+  
+  "testConfig": {
+    "description": "Configurações dos testes de performance",
+    "vus": {
+      "description": "Virtual Users - Número de usuários simultâneos",
+      "type": "number",
+      "default": 5,
+      "value": 5
+    },
+    "duration": {
+      "description": "Duração total do teste",
+      "type": "string",
+      "default": "30s",
+      "value": "30s"
+    },
+    "rampUp": {
+      "description": "Tempo de ramp-up (aumento gradual dos VUs)",
+      "type": "string",
+      "default": "10s",
+      "value": "10s"
+    }
+  },
+
+  "thresholds": {
+    "description": "Critérios de sucesso/falha dos testes",
+    
+    "p95_threshold": {
+      "description": "P95 - 95º percentil de resposta em ms (testes normais)",
+      "type": "number",
+      "default": 500,
+      "value": 500
+    },
+    
+    "p99_threshold": {
+      "description": "P99 - 99º percentil de resposta em ms (testes normais)",
+      "type": "number",
+      "default": 1000,
+      "value": 1000
+    },
+    
+    "stress_p95_threshold": {
+      "description": "P95 - 95º percentil de resposta em ms (stress tests)",
+      "type": "number",
+      "default": 1000,
+      "value": 1000
+    },
+    
+    "stress_p99_threshold": {
+      "description": "P99 - 99º percentil de resposta em ms (stress tests)",
+      "type": "number",
+      "default": 2000,
+      "value": 2000
+    }
+  },
+
+  "errorRates": {
+    "description": "Taxas de erro aceitáveis",
+    
+    "max_error_rate": {
+      "description": "Taxa máxima de erro HTTP (testes normais) - 5%",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.05,
+      "value": 0.05
+    },
+    
+    "max_failed_checks_rate": {
+      "description": "Taxa máxima de checks falhados (testes normais) - 5%",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.05,
+      "value": 0.05
+    },
+    
+    "stress_error_rate": {
+      "description": "Taxa máxima de erro HTTP (stress tests) - 10%",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.1,
+      "value": 0.1
+    },
+    
+    "smoke_error_rate": {
+      "description": "Taxa máxima de erro HTTP (smoke tests) - 20%",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.2,
+      "value": 0.2
+    }
+  },
+
+  "checkSuccessRates": {
+    "description": "Taxas mínimas de sucesso dos checks",
+    
+    "normal": {
+      "description": "Taxa mínima de sucesso - testes normais (95%)",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.95,
+      "value": 0.95
+    },
+    
+    "stress": {
+      "description": "Taxa mínima de sucesso - stress tests (85%)",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.85,
+      "value": 0.85
+    },
+    
+    "smoke": {
+      "description": "Taxa mínima de sucesso - smoke tests (80%)",
+      "type": "number",
+      "format": "percentage",
+      "default": 0.8,
+      "value": 0.8
+    }
+  },
+
+  "delays": {
+    "description": "Delays entre requisições (em ms)",
+    
+    "short": {
+      "description": "Delay curto",
+      "type": "number",
+      "default": 100,
+      "value": 100
+    },
+    
+    "medium": {
+      "description": "Delay médio",
+      "type": "number",
+      "default": 500,
+      "value": 500
+    },
+    
+    "long": {
+      "description": "Delay longo",
+      "type": "number",
+      "default": 1000,
+      "value": 1000
+    }
+  },
+
+  "httpStatus": {
+    "description": "Códigos HTTP conhecidos (para referência/documentação)",
+    "ok": 200,
+    "created": 201,
+    "bad_request": 400,
+    "unauthorized": 401,
+    "forbidden": 403,
+    "not_found": 404,
+    "conflict": 409,
+    "internal_error": 500
+  },
+
+  "endpoints": {
+    "description": "Endpoints da API ServeRest",
+    "users": "/usuarios",
+    "products": "/produtos",
+    "login": "/login"
+  }
+}
