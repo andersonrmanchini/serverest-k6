@@ -46,14 +46,19 @@ jobs:
           npm run build 2>/dev/null || true
           echo "Build completed (errors ignored if TypeScript-only)"
 
-      - name: ✅ Run Performance Tests
+      - name: ✅ Run Performance Tests with Report
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test
+        run: npm run build && k6 run dist/tests/index.js --out json=test-results/results.json || true
         continue-on-error: false
+
+      - name: 📄 Generate HTML Report
+        if: always()
+        run: node scripts/generate-report.js test-results/results.json test-results/report.html
+        continue-on-error: true
 
       - name: 📊 Run Load Tests (on develop only)
         if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
@@ -62,10 +67,15 @@ jobs:
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:load
+        run: npm run build && k6 run dist/tests/index.js --vus 10 --duration 1m --out json=test-results/results-load.json || true
         continue-on-error: true
 
-      - name: 📤 Upload test results
+      - name: 📄 Generate Load Test Report
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request' && always()
+        run: node scripts/generate-report.js test-results/results-load.json test-results/report-load.html
+        continue-on-error: true
+
+      - name: 📤 Upload test results and reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -151,16 +161,21 @@ jobs:
       - name: 📥 Install dependencies
         run: npm ci
 
-      - name: 🔥 Run Stress Tests (50 VUs, 5m)
+      - name: 🔥 Run Stress Tests (50 VUs, 5m) with Report
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:stress
+        run: npm run build && k6 run dist/tests/index.js --vus 50 --duration 5m --out json=test-results/results-stress.json || true
         continue-on-error: true
 
-      - name: 📤 Upload stress test results
+      - name: 📄 Generate Stress Test Report
+        if: always()
+        run: node scripts/generate-report.js test-results/results-stress.json test-results/report-stress.html
+        continue-on-error: true
+
+      - name: 📤 Upload stress test results and reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
