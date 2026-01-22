@@ -121,18 +121,29 @@ Todos os testes geram **relatórios HTML profissionais** (estilo Playwright):
 
 **Features:**
 - 🎨 Dark theme moderno
-- 📈 Dashboard com principais métricas
-- ✅ Detalhes de cada check
+- 📈 Dashboard com 6 principais métricas (requisições, taxa de falha, checks, VUs, duração, percentis)
+- ✅ Detalhes de cada check (passed/failed/success rate)
 - 📱 Responsivo para mobile
 - ⚡ Sem dependências externas
 
-**Exemplo:**
+**Gerar Relatório:**
 ```bash
-npm run test:report:smoke  # 10 segundos
-npm run report:open        # Abre no navegador
+npm run test:report       # Teste + relatório
+npm run test:report:smoke # Teste rápido (10s) + relatório
+npm run report:open       # Abrir relatório no navegador
 ```
 
-👉 Veja [QUICK_REPORT.md](QUICK_REPORT.md) para guia rápido ou [REPORTS.md](REPORTS.md) para documentação completa.
+**Os relatórios mostram:**
+- 📊 Requisições HTTP totais e taxa por segundo
+- ❌ Taxa de falha (%)
+- ✅ Taxa de checks (%)
+- 👥 VUs máximo
+- ⏱️ Duração média, min, max
+- 📊 Percentis (P95, P99)
+
+**Status Automático:**
+- 🟢 **PASSOU** - Todos critérios atendidos (≥95% checks)
+- 🔴 **FALHOU** - Critérios não atendidos (<95% checks)
 
 ---
 
@@ -407,27 +418,35 @@ jobs:
 | Connection refused | Verifique se `API_BASE_URL` está acessível |
 | Testes com timeout | Aumente `API_TIMEOUT` em `.env` |
 | Testes falhando nos thresholds | Ajuste valores em `k6.config.json` |
+| Relatório vazio | Rode `npm run test:report` e verifique `test-results/` |
+| Relatório não abre | Use `npm run report:open` ou abra `test-results/report.html` manualmente |
 
 ---
 
-## 📚 Checklist de Mudanças de Configuração
+## 📚 Dicas
 
-Se alterar thresholds ou performance:
-
-- [ ] Edite o valor em `k6.config.json`
-- [ ] Execute testes localmente: `npm run test`
-- [ ] Valide os resultados
-- [ ] Commit com mensagem clara:
+- **Salvar histórico**: Copie relatórios antigos com timestamps:
   ```bash
-  git add k6.config.json
-  git commit -m "chore: aumentar P95 threshold de 500ms para 600ms
-
-  Razão: API respondendo mais lentamente nas últimas medições"
+  cp test-results/report.html test-results/report-2026-01-22.html
   ```
 
-Assim, outras pessoas podem ver no histórico **por quê** a configuração foi alterada.
+- **Customizar configuração**: Edite `k6.config.json` com a razão em um commit descritivo
+
+- **Monitorar tendências**: Compare relatórios ao longo do tempo para identificar degradação
+
+- **Compartilhar**: Arquivos HTML são portáveis - envie por email/Slack
 
 ---
+
+## 📚 Recursos
+
+- [Documentação k6](https://k6.io/docs/)
+- [API ServeRest](https://serverest.dev/)
+- [k6 Best Practices](https://k6.io/docs/test-types/)
+
+## 📄 Licença
+
+ISC
 
 ## 📚 Recursos
 
