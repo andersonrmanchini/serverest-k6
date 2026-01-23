@@ -14,14 +14,12 @@ export class UserApiService {
   /**
    * Lista todos os usuários
    * GET /usuarios
+   * 
+   * NOTA: ServeRest não aceita skip/limit como query parameters.
+   * Os parâmetros skip e limit foram deprecados na API.
    */
-  listUsers(skip?: number, limit?: number) {
-    const params: Record<string, any> = {};
-    
-    if (skip !== undefined) params.skip = skip;
-    if (limit !== undefined) params.limit = limit;
-    
-    return this.api.get('/usuarios', params);
+  listUsers() {
+    return this.api.get('/usuarios');
   }
 
   /**

@@ -13,10 +13,14 @@ const productService = new ProductApiService();
 /**
  * Teste de Performance - Endpoint: GET /produtos
  * Simula listagem de produtos com diferentes volumes de dados
+ * 
+ * NOTA: ServeRest não aceita skip/limit como parâmetros de query.
+ * Use apenas GET /produtos sem parâmetros.
  */
 export function listProductsTest() {
   group('GET /produtos - List Products', () => {
-    const response = productService.listProducts(0, 10);
+    // Não usar skip/limit pois a API não os aceita
+    const response = productService.listProducts();
     
     checkRequest(response, HTTP_STATUS.OK, PERF_THRESHOLDS.P95_DURATION, {
       'response is valid JSON': (r) => {
@@ -34,6 +38,14 @@ export function listProductsTest() {
         } catch {
           return false;
         }
+      },
+      'response has produtos array': (r) => {
+        try {
+          const json = JSON.parse(r.body);
+          return Array.isArray(json.produtos);
+        } catch {
+          return false;
+        }
       }
     });
   });
@@ -46,7 +58,7 @@ export function listProductsTest() {
 export function getProductByIdTest(productId?: string) {
   group('GET /produtos/{id} - Get Product By ID', () => {
     // Se não houver um ID específico, vamos listar e pegar o primeiro
-    const listResponse = productService.listProducts(0, 1);
+    const listResponse = productService.listProducts();
     let id = productId;
 
     if (!id && listResponse.status === HTTP_STATUS.OK) {
@@ -120,21 +132,21 @@ export function createProductTest(token?: string) {
 
 /**
  * Teste de Performance com Paginação
- * Testa diferentes tamanhos de página para verificar impacto na performance
+ * DESABILITADO: ServeRest não suporta skip/limit como query parameters
+ * 
+ * A API apenas retorna todos os produtos quando chamada sem parâmetros.
+ * Para implementar paginação, seria necessário usar um parâmetro diferente
+ * ou implementar paginação no lado do cliente.
  */
 export function paginationTest() {
-  group('Pagination Performance', () => {
-    const pageSizes = [10, 25, 50];
-    
-    pageSizes.forEach(pageSize => {
-      const response = productService.listProducts(0, pageSize);
-      
-      check(response, {
-        [`pagination with limit=${pageSize} returns 200`]: (r) => r.status === HTTP_STATUS.OK,
-        [`pagination with limit=${pageSize} response time < 1000ms`]: (r) => r.timings.duration < 1000
-      });
-    });
-  });
+  // Desabilitado até que a API suporte parâmetros de paginação
+  // group('Pagination Performance', () => {
+  //   const response = productService.listProducts();
+  //   check(response, {
+  //     'pagination with limit=10 returns 200': (r) => r.status === HTTP_STATUS.OK,
+  //     'pagination with limit=10 response time < 1000ms': (r) => r.timings.duration < 1000
+  //   });
+  // });
 }
 
 /**

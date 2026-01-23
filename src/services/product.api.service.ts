@@ -14,14 +14,12 @@ export class ProductApiService {
   /**
    * Lista todos os produtos
    * GET /produtos
+   * 
+   * NOTA: ServeRest não aceita skip/limit como query parameters.
+   * Os parâmetros skip e limit foram deprecados na API.
    */
-  listProducts(skip?: number, limit?: number) {
-    const params: Record<string, any> = {};
-    
-    if (skip !== undefined) params.skip = skip;
-    if (limit !== undefined) params.limit = limit;
-    
-    return this.api.get('/produtos', params);
+  listProducts() {
+    return this.api.get('/produtos');
   }
 
   /**
