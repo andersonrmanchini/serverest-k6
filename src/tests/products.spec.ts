@@ -1,5 +1,6 @@
 import { check, group } from 'k6';
 import { ProductApiService } from '../services/product.api.service';
+import { AuthService } from '../services/auth.service';
 import { generateFakeProduct, generateFakeProducts } from '../utils/data.factory';
 import { 
   checkRequest,
@@ -9,6 +10,7 @@ import {
 import { ENDPOINTS, HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 
 const productService = new ProductApiService();
+const authService = new AuthService();
 
 /**
  * Teste de Performance - Endpoint: GET /produtos
@@ -91,18 +93,24 @@ export function getProductByIdTest(productId?: string) {
 
 /**
  * Teste de Performance - Endpoint: POST /produtos
- * Simula criação de novos produtos
+ * Simula criação de novos produtos com autenticação
  * 
- * Nota: Este teste pode falhar se a API requer autenticação
- * Para habilitar, será necessário adicionar lógica de login
+ * Usa token obtido através de login para autenticar a requisição
  */
 export function createProductTest(token?: string) {
-  group('POST /produtos - Create Product', () => {
+  group('POST /produtos - Create Product (Authenticated)', () => {
     const newProduct = generateFakeProduct();
     
-    const response = productService.createProduct(newProduct, token);
+    // Se não houver token, tentar obter um
+    let authToken = token;
+    if (!authToken) {
+      const admin = authService.createAdminUser();
+      authToken = admin.token || undefined;
+    }
     
-    // Status pode ser 201 ou 401 (se requer autenticação)
+    const response = productService.createProduct(newProduct, authToken);
+    
+    // Com autenticação, deve retornar 201
     if (response.status === HTTP_STATUS.CREATED) {
       checkRequest(response, HTTP_STATUS.CREATED, PERF_THRESHOLDS.P95_DURATION, {
         'response is valid JSON': (r) => {
@@ -123,8 +131,15 @@ export function createProductTest(token?: string) {
         }
       });
     } else if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+      // Se ainda falhar com 401, documentar que autenticação falhou
       check(response, {
         'authentication required (401)': (r) => r.status === HTTP_STATUS.UNAUTHORIZED
+      });
+    } else {
+      // Qualquer outro erro
+      check(response, {
+        'POST /produtos returns 2xx or 401': (r) => 
+          (r.status >= 200 && r.status < 300) || r.status === 401
       });
     }
   });

@@ -15,8 +15,15 @@
     "test:products": "npm run build && k6 run dist/tests/products.spec.js --vus 5 --duration 30s",
     "test:report": "npm run build && npm run test -- --out json=test-results/results.json && npm run report:generate",
     "test:report:smoke": "npm run build && npm run test:smoke -- --out json=test-results/results-smoke.json && npm run report:generate-smoke",
+    "test:report:load": "npm run build && npm run test:load -- --out json=test-results/results-load.json && npm run report:generate-load",
+    "test:report:stress": "npm run build && npm run test:stress -- --out json=test-results/results-stress.json && npm run report:generate-stress",
+    "test:report:soak": "npm run build && npm run test:soak -- --out json=test-results/results-soak.json && npm run report:generate-soak",
+    "test:all": "npm run test:report:smoke && npm run test:report:load && npm run test:report:stress",
     "report:generate": "node scripts/generate-report.js test-results/results.json test-results/report.html",
     "report:generate-smoke": "node scripts/generate-report.js test-results/results-smoke.json test-results/report-smoke.html",
+    "report:generate-load": "node scripts/generate-report.js test-results/results-load.json test-results/report-load.html",
+    "report:generate-stress": "node scripts/generate-report.js test-results/results-stress.json test-results/report-stress.html",
+    "report:generate-soak": "node scripts/generate-report.js test-results/results-soak.json test-results/report-soak.html",
     "report:open": "start test-results/report.html || open test-results/report.html"
   },
   "keywords": [
