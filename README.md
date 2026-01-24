@@ -13,7 +13,8 @@ Performance testing suite para a API [ServeRest](https://serverest.dev/) utiliza
 7. [Interpretando Resultados](#interpretando-resultados)
 8. [Git Workflow & CI/CD](#git-workflow--cicd)
 9. [GitHub Secrets](#github-secrets)
-10. [Troubleshooting](#troubleshooting)
+10. [Autenticação & Tokens](#autenticação--tokens)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -362,6 +363,30 @@ jobs:
 
 ---
 
+## 🔐 Autenticação & Tokens
+
+### Tokens para VS Code e Agentes de IA
+
+Se você precisa autenticar o projeto com agentes de IA no Visual Studio Code (como GitHub Copilot) ou usar tokens Git, consulte nosso guia completo:
+
+📖 **[TOKEN_AUTENTICACAO.md](TOKEN_AUTENTICACAO.md)**
+
+Este guia explica:
+- Como gerar e usar GitHub Personal Access Tokens (PAT)
+- Como autenticar GitHub Copilot no VS Code
+- Como configurar outros agentes de IA
+- Troubleshooting de problemas de autenticação
+
+### Links Rápidos:
+
+| Recurso | Link |
+|---------|------|
+| Gerar Personal Access Token | [github.com/settings/tokens](https://github.com/settings/tokens) |
+| Configurar GitHub Copilot | [github.com/settings/copilot](https://github.com/settings/copilot) |
+| Guia Completo de Autenticação | [TOKEN_AUTENTICACAO.md](TOKEN_AUTENTICACAO.md) |
+
+---
+
 ## 🐛 Troubleshooting
 
 | Erro | Solução |
@@ -370,6 +395,7 @@ jobs:
 | Connection refused | Verifique se `API_BASE_URL` está acessível |
 | Testes com timeout | Aumente `API_TIMEOUT` em `.env` |
 | Testes falhando nos thresholds | Ajuste valores em `k6.config.json` |
+| Problemas de autenticação Git/VS Code | Veja [TOKEN_AUTENTICACAO.md](TOKEN_AUTENTICACAO.md) |
 
 ---
 
