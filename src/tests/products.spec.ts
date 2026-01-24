@@ -95,17 +95,24 @@ export function getProductByIdTest(productId?: string) {
  * Teste de Performance - Endpoint: POST /produtos
  * Simula criação de novos produtos com autenticação
  * 
- * Usa token obtido através de login para autenticar a requisição
+ * Usa token obtido através de login para autenticar a requisição.
+ * Se nenhum token for fornecido, tenta fazer login com usuário de teste.
  */
 export function createProductTest(token?: string) {
   group('POST /produtos - Create Product (Authenticated)', () => {
     const newProduct = generateFakeProduct();
     
-    // Se não houver token, tentar obter um
+    // Se não houver token, tentar fazer login
     let authToken = token;
     if (!authToken) {
-      const admin = authService.createAdminUser();
-      authToken = admin.token || undefined;
+      // Tentar com usuário padrão de teste (servidor de teste pode ter este usuário)
+      authToken = authService.login('teste@teste.com', 'teste') || undefined;
+      
+      // Se ainda não tiver token, criar novo usuário
+      if (!authToken) {
+        const admin = authService.createAdminUser();
+        authToken = admin.token || undefined;
+      }
     }
     
     const response = productService.createProduct(newProduct, authToken);
@@ -131,7 +138,7 @@ export function createProductTest(token?: string) {
         }
       });
     } else if (response.status === HTTP_STATUS.UNAUTHORIZED) {
-      // Se ainda falhar com 401, documentar que autenticação falhou
+      // Se falhar com 401, documentar que autenticação falhou
       check(response, {
         'authentication required (401)': (r) => r.status === HTTP_STATUS.UNAUTHORIZED
       });
@@ -187,4 +194,12 @@ export function productScenario() {
   createProductTest();
   paginationTest();
   validateErrorRate();
+}
+
+/**
+ * Função padrão do k6 para execução do teste
+ * Chamada automaticamente quando o arquivo é executado como script principal
+ */
+export default function () {
+  productScenario();
 }

@@ -145,3 +145,11 @@ export function userScenario() {
   createUserTest();
   validateErrorRate();
 }
+
+/**
+ * Função padrão do k6 para execução do teste
+ * Chamada automaticamente quando o arquivo é executado como script principal
+ */
+export default function () {
+  userScenario();
+}

@@ -8,9 +8,21 @@ export class AuthService {
   private api: ApiService;
   private cachedToken: string | null = null;
   private cachedEmail: string | null = null;
+  private static instance: AuthService | null = null;
+  private static tokenCache: Map<string, string> = new Map();
 
   constructor(baseUrl?: string) {
     this.api = new ApiService(baseUrl);
+  }
+
+  /**
+   * Obtém instância singleton do AuthService
+   */
+  static getInstance(baseUrl?: string): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService(baseUrl);
+    }
+    return AuthService.instance;
   }
 
   /**

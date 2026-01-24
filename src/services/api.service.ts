@@ -30,19 +30,30 @@ export class ApiService {
 
   /**
    * Executa uma requisição POST
+   * @param endpoint Endpoint da API
+   * @param payload Dados a enviar
+   * @param headers Headers opcionais
+   * @param allowAllStatus Se true, não marca 4xx/5xx como erro
    */
-  post(endpoint: string, payload: any, headers?: Record<string, string>) {
+  post(endpoint: string, payload: any, headers?: Record<string, string>, allowAllStatus: boolean = false) {
     const url = this.buildUrl(endpoint);
     const defaultHeaders = {
       'Content-Type': 'application/json',
       ...headers
     };
     
-    return http.post(url, JSON.stringify(payload), {
+    const options: any = {
       headers: defaultHeaders,
       timeout: this.defaultTimeout,
       tags: { name: endpoint, method: 'POST' }
-    });
+    };
+    
+    // Se allowAllStatus=true, considera qualquer status como sucesso (não marca como erro)
+    if (allowAllStatus) {
+      options.validateStatus = (status: number) => true;
+    }
+    
+    return http.post(url, JSON.stringify(payload), options);
   }
 
   /**

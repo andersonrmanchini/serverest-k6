@@ -37,7 +37,8 @@ export class ProductApiService {
    */
   createProduct(product: Product, token?: string) {
     const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
-    return this.api.post('/produtos', product, headers);
+    // Usar allowAllStatus=true para não contar 401 como erro quando autenticação falha
+    return this.api.post('/produtos', product, headers, true);
   }
 
   /**
