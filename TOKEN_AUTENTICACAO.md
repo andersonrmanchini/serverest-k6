@@ -110,7 +110,7 @@ Se você está usando outros agentes de IA (como ChatGPT, Claude, Tabnine, etc.)
 | **Tabnine** | Login via extensão + API Key |
 | **ChatGPT** | API Key da OpenAI |
 | **Codeium** | Login OAuth via navegador |
-| **Amazon CodeWhisperer** | Login AWS |
+| **Amazon Q Developer** | Login AWS |
 
 ### Como Encontrar:
 
@@ -198,7 +198,7 @@ git credential reject https://github.com
 | **SSH Keys** | [github.com/settings/keys](https://github.com/settings/keys) |
 | **Aplicações Autorizadas** | [github.com/settings/applications](https://github.com/settings/applications) |
 | **Documentação Git Credentials** | [git-scm.com/docs/gitcredentials](https://git-scm.com/docs/gitcredentials) |
-| **Docs GitHub Copilot** | [docs.github.com/copilot](https://docs.github.com/en/copilot) |
+| **Docs GitHub Copilot** | [docs.github.com/pt/copilot](https://docs.github.com/pt/copilot) |
 
 ---
 
