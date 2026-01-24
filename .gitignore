@@ -52,6 +52,7 @@ ehthumbs.db
 *.jsx
 !webpack.config.js
 !build.js
+!scripts/*.js
 dist/
 build/
 
