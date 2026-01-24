@@ -90,11 +90,19 @@ Contém **todas** as configurações de performance (totalmente documentado):
 npm run test
 ```
 
-### Teste com Relatório HTML 📊
+### Teste com Relatório HTML 📊 (NOVO - Relatório Detalhado!)
 ```bash
-npm run test:report      # Rodar testes + gerar relatório
-npm run report:open      # Abrir relatório no navegador
+npm run test:report              # Rodar testes + gerar relatório DETALHADO
+npm run report:open-detailed     # Abrir relatório no navegador
+npm run report:open              # Abrir relatório antigo (básico)
 ```
+
+**Relatório Detalhado Inclui:**
+- ✅ Checks separados por cenário (7 cenários)
+- 📊 Métricas HTTP com percentis (Mín, P95, Máx)
+- 🎨 Barras de progresso vs. thresholds
+- 📈 4 cards com resumo de taxas
+- 🎯 Cores inteligentes (Verde = OK, Amarelo = Atenção, Vermelho = Alerta)
 
 ### Outros Tipos
 ```bash
@@ -105,29 +113,38 @@ npm run test:spike      # Picos de tráfego (100 VUs, 1m)
 npm run test:soak       # Longa duração (20 VUs, 30m)
 ```
 
-### Relatórios
-```bash
-npm run test:report       # Teste padrão + relatório
-npm run test:report:smoke # Teste smoke + relatório
-npm run report:generate   # Gerar relatório manualmente
-npm run report:open       # Abrir relatório no navegador
-```
-
 ---
 
 ## 📊 Relatórios HTML
 
-Todos os testes geram **relatórios HTML profissionais** com:
+Todos os testes geram **relatórios HTML detalhados e profissionais** com:
+
+### ✨ Relatório Detalhado (NOVO - Recomendado!)
 - 🎨 Dark theme moderno, responsivo para mobile
-- 📈 Dashboard com 6 métricas (requisições, fail rate, checks, VUs, duração, percentis)
-- ✅ Detalhes de cada check e status final (PASSOU/FALHOU)
-- ⚡ Sem dependências externas
+- 📈 **4 Cards Principais:** Taxa de checks, total de checks, cenários, tempo médio
+- 🎯 **Checks por Cenário:** 7 cenários agrupados com seus checks específicos
+- 📋 **Todos os 12 Checks:** Com taxa individual de sucesso
+- ⏱️ **Métricas HTTP com Percentis:** Mín / P95 / Máx para cada métrica
+- 📊 **Barras de Progresso:** Visualizam se dentro do threshold ou não
+- 🎨 **Cores Inteligentes:**
+  - 🟢 Verde = Dentro do threshold (OK)
+  - 🟡 Amarelo = Próximo ao limite (Atenção)
+  - 🔴 Vermelho = Acima do threshold (Alerta)
 
 **Gerar:**
 ```bash
-npm run test:report       # Teste padrão + relatório
-npm run test:report:smoke # Teste rápido + relatório
-npm run report:open       # Abrir no navegador
+npm run test:report                # Teste padrão + relatório detalhado
+npm run test:report:smoke          # Teste smoke + relatório
+npm run test:report:load           # Teste load + relatório
+npm run test:report:stress         # Teste stress + relatório
+npm run report:open-detailed       # Abrir relatório existente
+```
+
+### Relatório Básico (Legacy)
+Ainda disponível, mas o detalhado é recomendado:
+```bash
+npm run report:generate            # Gerar versão básica
+npm run report:open                # Abrir versão básica
 ```
 
 ---
@@ -145,6 +162,42 @@ k6 run src/tests/index.ts
 
 # Ou use variáveis de ambiente:
 k6 run -e API_BASE_URL=https://seu-api.com src/tests/index.ts
+```
+
+---
+
+## 📈 Análise de Resultados via CLI
+
+Além do relatório HTML, você pode analisar os resultados no console com detalhes de checks por cenário:
+
+```bash
+npm run analyze:results   # Analisa último teste
+npm run analyze:smoke     # Analisa teste smoke
+npm run analyze:load      # Analisa teste load
+npm run analyze:stress    # Analisa teste stress
+```
+
+**Saída inclui:**
+- ✅ Resumo geral de todos os 12 checks
+- 🎯 Checks agrupados por 7 cenários de teste
+- ⏱️ Métricas HTTP (duração, waiting, failed, total)
+- 📊 Análise de erros e falhas esperadas
+
+Exemplo:
+```
+📈 RESUMO GERAL DE CHECKS
+✅ status is 200: 100.00% (140 execuções)
+✅ response time < 500ms: 100.00% (175 execuções)
+...
+
+🎯 CHECKS POR CENÁRIO
+📍 GET /usuarios - List Users
+   ✓ status is 200: 35 execuções
+   ✓ response time < 500ms: 35 execuções
+   ...
+
+⏱️ MÉTRICAS HTTP
+📊 http_req_duration: Média 202.47ms | Min 156.40ms | Max 646.90ms | P95 293.54ms
 ```
 
 ---
