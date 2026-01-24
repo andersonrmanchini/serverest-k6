@@ -33,11 +33,3 @@ export const smokeThresholds = {
   'http_req_failed': [`rate<${thresholdConfig.smokeErrorRate}`],
   'checks': [`rate>${thresholdConfig.smokeCheckSuccessRate}`]
 };
-
-export const scenarioOptions = {
-  stages: [
-    { duration: '10s', target: 5 },
-    { duration: '30s', target: 5 },
-    { duration: '10s', target: 0 }
-  ]
-};

@@ -1,13 +1,9 @@
 import { check, group } from 'k6';
 import { ProductApiService } from '../services/product.api.service';
 import { AuthService } from '../services/auth.service';
-import { generateFakeProduct, generateFakeProducts } from '../utils/data.factory';
-import { 
-  checkRequest,
-  checkResponseTime,
-  getJsonField
-} from '../utils/checks';
-import { ENDPOINTS, HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
+import { generateFakeProduct } from '../utils/data.factory';
+import { checkRequest } from '../utils/checks';
+import { HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 
 const productService = new ProductApiService();
 const authService = new AuthService();

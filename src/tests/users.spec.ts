@@ -1,13 +1,8 @@
 import { check, group } from 'k6';
 import { UserApiService } from '../services/user.api.service';
-import { generateFakeUser, generateFakeUsers } from '../utils/data.factory';
-import { 
-  checkStatusCode, 
-  checkResponseTime, 
-  checkJsonResponse,
-  checkRequest 
-} from '../utils/checks';
-import { ENDPOINTS, HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
+import { generateFakeUser } from '../utils/data.factory';
+import { checkRequest } from '../utils/checks';
+import { HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 
 const userService = new UserApiService();
 

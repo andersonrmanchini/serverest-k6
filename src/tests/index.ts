@@ -2,7 +2,7 @@ import { sleep } from 'k6';
 import { Options } from 'k6/options';
 import { userScenario } from './users.spec';
 import { productScenario } from './products.spec';
-import { thresholds, smokeThresholds, stressThresholds } from '../utils/thresholds';
+import { thresholds, smokeThresholds } from '../utils/thresholds';
 import { testConfig, k6CloudConfig, securityConfig } from '../utils/config';
 
 // Detecta qual tipo de teste está rodando pelos args da CLI

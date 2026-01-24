@@ -20,12 +20,6 @@ const parseEnvNumber = (value: string | number, defaultValue: number): number =>
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-const parseEnvFloat = (value: string | number, defaultValue: number): number => {
-  if (typeof value === 'number') return value;
-  const parsed = parseFloat(value as string);
-  return isNaN(parsed) ? defaultValue : parsed;
-};
-
 // Helper para pegar valores de config JSON
 const getConfigValue = (key: string, defaultValue: any): any => {
   try {
@@ -123,9 +117,4 @@ export const securityConfig = {
   insecureSkipTLSVerify: getEnvVar('INSECURE_SKIP_TLS_VERIFY', 'true') === 'true'
 };
 
-/**
- * Configuração de CI/CD (from .env)
- */
-export const ciConfig = {
-  isCI: getEnvVar('CI_ENVIRONMENT', 'false') === 'true'
-};
+
