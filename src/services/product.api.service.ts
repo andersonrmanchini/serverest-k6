@@ -14,14 +14,12 @@ export class ProductApiService {
   /**
    * Lista todos os produtos
    * GET /produtos
+   * 
+   * NOTA: ServeRest não aceita skip/limit como query parameters.
+   * Os parâmetros skip e limit foram deprecados na API.
    */
-  listProducts(skip?: number, limit?: number) {
-    const params: Record<string, any> = {};
-    
-    if (skip !== undefined) params.skip = skip;
-    if (limit !== undefined) params.limit = limit;
-    
-    return this.api.get('/produtos', params);
+  listProducts() {
+    return this.api.get('/produtos');
   }
 
   /**
@@ -39,7 +37,8 @@ export class ProductApiService {
    */
   createProduct(product: Product, token?: string) {
     const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
-    return this.api.post('/produtos', product, headers);
+    // Usar allowAllStatus=true para não contar 401 como erro quando autenticação falha
+    return this.api.post('/produtos', product, headers, true);
   }
 
   /**

@@ -13,7 +13,21 @@
     "test:soak": "npm run build && k6 run dist/tests/index.js --vus 20 --duration 30m",
     "test:users": "npm run build && k6 run dist/tests/users.spec.js --vus 5 --duration 30s",
     "test:products": "npm run build && k6 run dist/tests/products.spec.js --vus 5 --duration 30s",
-    "test:report": "npm run build && k6 run dist/tests/index.js --out json=test-results/results.json && cat test-results/results.json"
+    "test:report": "npm run build && npm run test -- --out json=test-results/results.json && npm run report:detailed",
+    "test:report:smoke": "npm run build && npm run test:smoke -- --out json=test-results/results-smoke.json && npm run report:detailed-smoke",
+    "test:report:load": "npm run build && npm run test:load -- --out json=test-results/results-load.json && npm run report:detailed-load",
+    "test:report:stress": "npm run build && npm run test:stress -- --out json=test-results/results-stress.json && npm run report:detailed-stress",
+    "test:all": "npm run test:report:smoke && npm run test:report:load && npm run test:report:stress",
+    "report:detailed": "node scripts/generate-detailed-report.js && npm run report:open-detailed",
+    "report:detailed-smoke": "node scripts/generate-detailed-report.js && npm run report:open-detailed",
+    "report:detailed-load": "node scripts/generate-detailed-report.js && npm run report:open-detailed",
+    "report:detailed-stress": "node scripts/generate-detailed-report.js && npm run report:open-detailed",
+    "report:open": "start test-results/report.html || open test-results/report.html",
+    "report:open-detailed": "start test-results/report-detailed.html || open test-results/report-detailed.html",
+    "analyze:results": "node scripts/analyze-results.js test-results/results.json",
+    "analyze:smoke": "node scripts/analyze-results.js test-results/results-smoke.json",
+    "analyze:load": "node scripts/analyze-results.js test-results/results-load.json",
+    "analyze:stress": "node scripts/analyze-results.js test-results/results-stress.json"
   },
   "keywords": [
     "performance",

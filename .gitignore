@@ -21,7 +21,8 @@ Thumbs.db
 .sublime-project
 .sublime-workspace
 
-# Test Results
+# Test Results and Reports
+# Gerados localmente para consulta rápida, mas nunca versionados
 /test-results
 /coverage
 *.lcov
@@ -51,6 +52,7 @@ ehthumbs.db
 *.jsx
 !webpack.config.js
 !build.js
+!scripts/*.js
 dist/
 build/
 

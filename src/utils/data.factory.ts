@@ -3,7 +3,7 @@ export interface User {
   nome: string;
   email: string;
   password: string;
-  administrador: boolean;
+  administrador: string; // ServeRest expects "true" or "false" as strings, not booleans
 }
 
 export interface Product {
@@ -56,6 +56,9 @@ const descriptions = [
 
 /**
  * Gera um usuário aleatório para testes
+ * 
+ * NOTA: ServeRest requer que o campo 'administrador' seja uma string
+ * com valores "true" ou "false", não um booleano JavaScript.
  */
 export function generateFakeUser(isAdmin: boolean = false): User {
   const firstName = firstNames[randomIntBetween(0, firstNames.length - 1)];
@@ -66,7 +69,7 @@ export function generateFakeUser(isAdmin: boolean = false): User {
     nome: `${firstName} ${lastName}`,
     email: `user.${timestamp}${randomIntBetween(1000, 9999)}@test.com`,
     password: randomString(12),
-    administrador: isAdmin
+    administrador: isAdmin ? 'true' : 'false' // Convert boolean to string as ServeRest expects
   };
 }
 

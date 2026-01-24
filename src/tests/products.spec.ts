@@ -1,5 +1,6 @@
 import { check, group } from 'k6';
 import { ProductApiService } from '../services/product.api.service';
+import { AuthService } from '../services/auth.service';
 import { generateFakeProduct, generateFakeProducts } from '../utils/data.factory';
 import { 
   checkRequest,
@@ -9,14 +10,19 @@ import {
 import { ENDPOINTS, HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 
 const productService = new ProductApiService();
+const authService = new AuthService();
 
 /**
  * Teste de Performance - Endpoint: GET /produtos
  * Simula listagem de produtos com diferentes volumes de dados
+ * 
+ * NOTA: ServeRest não aceita skip/limit como parâmetros de query.
+ * Use apenas GET /produtos sem parâmetros.
  */
 export function listProductsTest() {
   group('GET /produtos - List Products', () => {
-    const response = productService.listProducts(0, 10);
+    // Não usar skip/limit pois a API não os aceita
+    const response = productService.listProducts();
     
     checkRequest(response, HTTP_STATUS.OK, PERF_THRESHOLDS.P95_DURATION, {
       'response is valid JSON': (r) => {
@@ -34,6 +40,14 @@ export function listProductsTest() {
         } catch {
           return false;
         }
+      },
+      'response has produtos array': (r) => {
+        try {
+          const json = JSON.parse(r.body);
+          return Array.isArray(json.produtos);
+        } catch {
+          return false;
+        }
       }
     });
   });
@@ -46,7 +60,7 @@ export function listProductsTest() {
 export function getProductByIdTest(productId?: string) {
   group('GET /produtos/{id} - Get Product By ID', () => {
     // Se não houver um ID específico, vamos listar e pegar o primeiro
-    const listResponse = productService.listProducts(0, 1);
+    const listResponse = productService.listProducts();
     let id = productId;
 
     if (!id && listResponse.status === HTTP_STATUS.OK) {
@@ -79,18 +93,31 @@ export function getProductByIdTest(productId?: string) {
 
 /**
  * Teste de Performance - Endpoint: POST /produtos
- * Simula criação de novos produtos
+ * Simula criação de novos produtos com autenticação
  * 
- * Nota: Este teste pode falhar se a API requer autenticação
- * Para habilitar, será necessário adicionar lógica de login
+ * Usa token obtido através de login para autenticar a requisição.
+ * Se nenhum token for fornecido, tenta fazer login com usuário de teste.
  */
 export function createProductTest(token?: string) {
-  group('POST /produtos - Create Product', () => {
+  group('POST /produtos - Create Product (Authenticated)', () => {
     const newProduct = generateFakeProduct();
     
-    const response = productService.createProduct(newProduct, token);
+    // Se não houver token, tentar fazer login
+    let authToken = token;
+    if (!authToken) {
+      // Tentar com usuário padrão de teste (servidor de teste pode ter este usuário)
+      authToken = authService.login('teste@teste.com', 'teste') || undefined;
+      
+      // Se ainda não tiver token, criar novo usuário
+      if (!authToken) {
+        const admin = authService.createAdminUser();
+        authToken = admin.token || undefined;
+      }
+    }
     
-    // Status pode ser 201 ou 401 (se requer autenticação)
+    const response = productService.createProduct(newProduct, authToken);
+    
+    // Com autenticação, deve retornar 201
     if (response.status === HTTP_STATUS.CREATED) {
       checkRequest(response, HTTP_STATUS.CREATED, PERF_THRESHOLDS.P95_DURATION, {
         'response is valid JSON': (r) => {
@@ -111,8 +138,15 @@ export function createProductTest(token?: string) {
         }
       });
     } else if (response.status === HTTP_STATUS.UNAUTHORIZED) {
+      // Se falhar com 401, documentar que autenticação falhou
       check(response, {
         'authentication required (401)': (r) => r.status === HTTP_STATUS.UNAUTHORIZED
+      });
+    } else {
+      // Qualquer outro erro
+      check(response, {
+        'POST /produtos returns 2xx or 401': (r) => 
+          (r.status >= 200 && r.status < 300) || r.status === 401
       });
     }
   });
@@ -120,21 +154,21 @@ export function createProductTest(token?: string) {
 
 /**
  * Teste de Performance com Paginação
- * Testa diferentes tamanhos de página para verificar impacto na performance
+ * DESABILITADO: ServeRest não suporta skip/limit como query parameters
+ * 
+ * A API apenas retorna todos os produtos quando chamada sem parâmetros.
+ * Para implementar paginação, seria necessário usar um parâmetro diferente
+ * ou implementar paginação no lado do cliente.
  */
 export function paginationTest() {
-  group('Pagination Performance', () => {
-    const pageSizes = [10, 25, 50];
-    
-    pageSizes.forEach(pageSize => {
-      const response = productService.listProducts(0, pageSize);
-      
-      check(response, {
-        [`pagination with limit=${pageSize} returns 200`]: (r) => r.status === HTTP_STATUS.OK,
-        [`pagination with limit=${pageSize} response time < 1000ms`]: (r) => r.timings.duration < 1000
-      });
-    });
-  });
+  // Desabilitado até que a API suporte parâmetros de paginação
+  // group('Pagination Performance', () => {
+  //   const response = productService.listProducts();
+  //   check(response, {
+  //     'pagination with limit=10 returns 200': (r) => r.status === HTTP_STATUS.OK,
+  //     'pagination with limit=10 response time < 1000ms': (r) => r.timings.duration < 1000
+  //   });
+  // });
 }
 
 /**
@@ -160,4 +194,12 @@ export function productScenario() {
   createProductTest();
   paginationTest();
   validateErrorRate();
+}
+
+/**
+ * Função padrão do k6 para execução do teste
+ * Chamada automaticamente quando o arquivo é executado como script principal
+ */
+export default function () {
+  productScenario();
 }

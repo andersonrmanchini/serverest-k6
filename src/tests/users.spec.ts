@@ -14,10 +14,14 @@ const userService = new UserApiService();
 /**
  * Teste de Performance - Endpoint: GET /usuarios
  * Simula listagem de usuários com diferentes volumes de dados
+ * 
+ * NOTA: ServeRest não aceita skip/limit como parâmetros de query.
+ * Use apenas GET /usuarios sem parâmetros.
  */
 export function listUsersTest() {
   group('GET /usuarios - List Users', () => {
-    const response = userService.listUsers(0, 10);
+    // Não usar skip/limit pois a API não os aceita
+    const response = userService.listUsers();
     
     checkRequest(response, HTTP_STATUS.OK, PERF_THRESHOLDS.P95_DURATION, {
       'response is valid JSON': (r) => {
@@ -35,6 +39,14 @@ export function listUsersTest() {
         } catch {
           return false;
         }
+      },
+      'response has usuarios array': (r) => {
+        try {
+          const json = JSON.parse(r.body);
+          return Array.isArray(json.usuarios);
+        } catch {
+          return false;
+        }
       }
     });
   });
@@ -47,7 +59,7 @@ export function listUsersTest() {
 export function getUserByIdTest(userId?: string) {
   group('GET /usuarios/{id} - Get User By ID', () => {
     // Se não houver um ID específico, vamos listar e pegar o primeiro
-    const listResponse = userService.listUsers(0, 1);
+    const listResponse = userService.listUsers();
     let id = userId;
 
     if (!id && listResponse.status === HTTP_STATUS.OK) {
@@ -132,4 +144,12 @@ export function userScenario() {
   getUserByIdTest();
   createUserTest();
   validateErrorRate();
+}
+
+/**
+ * Função padrão do k6 para execução do teste
+ * Chamada automaticamente quando o arquivo é executado como script principal
+ */
+export default function () {
+  userScenario();
 }
