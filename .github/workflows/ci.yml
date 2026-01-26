@@ -41,7 +41,10 @@ jobs:
           npm run build 2>/dev/null || true
           echo "Build completed (errors ignored if TypeScript-only)"
 
-      - name: 🔥 Run Smoke Test (Quick Validation)
+      - name: � Create test-results directory
+        run: mkdir -p test-results
+
+      - name: �🔥 Run Smoke Test (Quick Validation)
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
