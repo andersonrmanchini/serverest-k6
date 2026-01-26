@@ -47,7 +47,7 @@ jobs:
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:smoke
+        run: npm run build && k6 run dist/tests/index.js -e TEST_TYPE=smoke --out json=test-results/results-smoke.json
         continue-on-error: false
 
       - name: 📊 Run Load Test (Normal Load)
@@ -56,7 +56,7 @@ jobs:
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:load
+        run: npm run build && k6 run dist/tests/index.js -e TEST_TYPE=load --out json=test-results/results-load.json
         continue-on-error: false
 
       - name: 🔥 Run Stress Test (Find Limits)
@@ -66,7 +66,7 @@ jobs:
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:stress
+        run: npm run build && k6 run dist/tests/index.js -e TEST_TYPE=stress --out json=test-results/results-stress.json
         continue-on-error: true
 
       - name: ⚡ Run Spike Test (Sudden Traffic)
@@ -76,12 +76,27 @@ jobs:
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run test:spike
+        run: npm run build && k6 run dist/tests/index.js -e TEST_TYPE=spike --out json=test-results/results-spike.json
         continue-on-error: true
 
-      - name: 📄 Generate HTML Report
+      - name: 📄 Generate Smoke Report
         if: always()
-        run: node scripts/generate-detailed-report.js test-results/results.json test-results/report-detailed.html default
+        run: node scripts/generate-detailed-report.js test-results/results-smoke.json test-results/report-smoke.html smoke
+        continue-on-error: true
+
+      - name: 📄 Generate Load Report
+        if: always()
+        run: node scripts/generate-detailed-report.js test-results/results-load.json test-results/report-load.html load
+        continue-on-error: true
+
+      - name: 📄 Generate Stress Report
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request' && always()
+        run: node scripts/generate-detailed-report.js test-results/results-stress.json test-results/report-stress.html stress
+        continue-on-error: true
+
+      - name: 📄 Generate Spike Report
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request' && always()
+        run: node scripts/generate-detailed-report.js test-results/results-spike.json test-results/report-spike.html spike
         continue-on-error: true
 
       - name: 📤 Upload test results and reports
@@ -99,31 +114,54 @@ jobs:
           script: |
             try {
               const fs = require('fs');
-              const resultsFile = 'test-results/results.json';
+              const smokeFile = 'test-results/results-smoke.json';
+              const loadFile = 'test-results/results-load.json';
               
               let comment = '## ✅ k6 Performance Tests Results\n\n';
               
-              if (fs.existsSync(resultsFile)) {
-                const results = JSON.parse(fs.readFileSync(resultsFile, 'utf8'));
-                const summary = results.metrics || {};
+              // Smoke Test Results
+              if (fs.existsSync(smokeFile)) {
+                const smokeResults = JSON.parse(fs.readFileSync(smokeFile, 'utf8'));
+                const smokeSummary = smokeResults.metrics || {};
                 
+                comment += '### 🔥 Smoke Test (Quick Validation)\n\n';
                 comment += '| Metric | Value |\n';
                 comment += '|--------|-------|\n';
                 
-                if (summary.http_reqs?.value) {
-                  comment += `| Total Requests | ${summary.http_reqs.value} |\n`;
+                if (smokeSummary.http_reqs?.value) {
+                  comment += `| Total Requests | ${smokeSummary.http_reqs.value} |\n`;
                 }
-                if (summary.http_req_duration?.values?.p95) {
-                  comment += `| P95 Duration | ${summary.http_req_duration.values.p95.toFixed(2)}ms |\n`;
+                if (smokeSummary.http_req_duration?.values?.p95) {
+                  comment += `| P95 Duration | ${smokeSummary.http_req_duration.values.p95.toFixed(2)}ms |\n`;
                 }
-                if (summary.http_req_failed?.value) {
-                  comment += `| Failed Requests | ${summary.http_req_failed.value} |\n`;
+                if (smokeSummary.http_req_failed?.rate !== undefined) {
+                  comment += `| Failed Rate | ${(smokeSummary.http_req_failed.rate * 100).toFixed(2)}% |\n`;
                 }
-                
-                comment += '\n✅ Tests passed - Ready for merge!';
-              } else {
-                comment += 'Tests completed successfully!\n\n✅ Ready for merge!';
+                comment += '\n';
               }
+              
+              // Load Test Results
+              if (fs.existsSync(loadFile)) {
+                const loadResults = JSON.parse(fs.readFileSync(loadFile, 'utf8'));
+                const loadSummary = loadResults.metrics || {};
+                
+                comment += '### 📊 Load Test (Normal Load)\n\n';
+                comment += '| Metric | Value |\n';
+                comment += '|--------|-------|\n';
+                
+                if (loadSummary.http_reqs?.value) {
+                  comment += `| Total Requests | ${loadSummary.http_reqs.value} |\n`;
+                }
+                if (loadSummary.http_req_duration?.values?.p95) {
+                  comment += `| P95 Duration | ${loadSummary.http_req_duration.values.p95.toFixed(2)}ms |\n`;
+                }
+                if (loadSummary.http_req_failed?.rate !== undefined) {
+                  comment += `| Failed Rate | ${(loadSummary.http_req_failed.rate * 100).toFixed(2)}% |\n`;
+                }
+                comment += '\n';
+              }
+              
+              comment += '✅ Tests passed - Ready for merge!';
               
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
