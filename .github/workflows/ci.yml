@@ -5,9 +5,6 @@ on:
     branches: [ develop ]
   pull_request:
     branches: [ main ]
-  schedule:
-    # Executar testes de stress diariamente às 2 AM UTC
-    - cron: '0 2 * * *'
 
 jobs:
   test:
@@ -44,33 +41,47 @@ jobs:
           npm run build 2>/dev/null || true
           echo "Build completed (errors ignored if TypeScript-only)"
 
-      - name: ✅ Run Performance Tests with Report
+      - name: 🔥 Run Smoke Test (Quick Validation)
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run build && k6 run dist/tests/index.js --out json=test-results/results.json || true
+        run: npm run test:smoke
         continue-on-error: false
 
-      - name: 📄 Generate HTML Report
-        if: always()
-        run: node scripts/generate-report.js test-results/results.json test-results/report.html
-        continue-on-error: true
+      - name: 📊 Run Load Test (Normal Load)
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
+          K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
+          INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
+          CI_ENVIRONMENT: true
+        run: npm run test:load
+        continue-on-error: false
 
-      - name: 📊 Run Load Tests (on develop only)
+      - name: 🔥 Run Stress Test (Find Limits)
         if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
           K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
           INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
           CI_ENVIRONMENT: true
-        run: npm run build && k6 run dist/tests/index.js --vus 10 --duration 1m --out json=test-results/results-load.json || true
+        run: npm run test:stress
         continue-on-error: true
 
-      - name: 📄 Generate Load Test Report
-        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request' && always()
-        run: node scripts/generate-report.js test-results/results-load.json test-results/report-load.html
+      - name: ⚡ Run Spike Test (Sudden Traffic)
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'pull_request'
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
+          K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
+          INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
+          CI_ENVIRONMENT: true
+        run: npm run test:spike
+        continue-on-error: true
+
+      - name: 📄 Generate HTML Report
+        if: always()
+        run: node scripts/generate-detailed-report.js test-results/results.json test-results/report-detailed.html default
         continue-on-error: true
 
       - name: 📤 Upload test results and reports
@@ -131,65 +142,3 @@ jobs:
           echo "::error::Performance tests failed - PR cannot be merged"
           echo "Check artifact and logs above for details"
           exit 1
-
-  scheduled-stress:
-    name: Scheduled Stress Test (nightly)
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🔄 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: 'npm'
-
-      - name: 🔧 Install k6
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y apt-transport-https
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6-archive.list
-          sudo gpg --no-default-keyring --keyring=/usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3232A+D3D6C1E27C1E48CD4344B1FA0B937C73CAEABF
-          sudo apt-get update
-          sudo apt-get install k6
-
-      - name: 📥 Install dependencies
-        run: npm ci
-
-      - name: 🔥 Run Stress Tests (50 VUs, 5m) with Report
-        env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://serverest.dev' }}
-          K6_PROJECT_ID: ${{ secrets.K6_PROJECT_ID || '0' }}
-          INSECURE_SKIP_TLS_VERIFY: ${{ secrets.INSECURE_SKIP_TLS_VERIFY || 'true' }}
-          CI_ENVIRONMENT: true
-        run: npm run build && k6 run dist/tests/index.js --vus 50 --duration 5m --out json=test-results/results-stress.json || true
-        continue-on-error: true
-
-      - name: 📄 Generate Stress Test Report
-        if: always()
-        run: node scripts/generate-report.js test-results/results-stress.json test-results/report-stress.html
-        continue-on-error: true
-
-      - name: 📤 Upload stress test results and reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: k6-stress-test-results-${{ github.run_id }}
-          path: test-results/
-          retention-days: 30
-
-      - name: 📧 Create issue on failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '⚠️ Nightly Stress Test Failed',
-              body: 'Scheduled stress test failed on main. Review workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}',
-              labels: ['performance', 'ci-failed']
-            });
