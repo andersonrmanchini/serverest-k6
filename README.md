@@ -52,18 +52,7 @@ Este projeto usa **2 arquivos de configuração**:
 
 ### 📋 `.env` (git ignored)
 
-Contém **apenas** informações sensíveis:
-
-```env
-API_BASE_URL=https://serverest.dev        # URL da API
-API_TIMEOUT=30s                             # Timeout padrão
-K6_PROJECT_ID=0                             # ID projeto k6 Cloud
-K6_PROJECT_NAME=ServeRest Performance Tests # Nome projeto
-INSECURE_SKIP_TLS_VERIFY=true              # Flag TLS (dev only)
-CI_ENVIRONMENT=false                        # Flag CI/CD
-```
-
-**Nota:** Use `.env.example` como template, não commite `.env`
+Contém **apenas** informações sensíveis.
 
 ### 📊 `k6.config.json` (versionado)
 
@@ -264,15 +253,8 @@ k6.config.json                 # Configurações de performance
 - **Conteúdo:** Executado antes de cada `npm run test`, garante código atualizado
 - **Para quem?** Automaticamente executado pelo projeto, raramente precisa ser editado
 
-#### `.env.example`
-- **Propósito:** Template das variáveis de ambiente sensíveis
-- **Conteúdo:** Exemplo de como configurar `.env` (chaves secretas, URLs)
-- **Nota:** NUNCA commite `.env` real, apenas `.env.example`
-- **Para quem?** Novos dev membros - copiam este arquivo para `.env` local
-
 #### `.env` (não versionado)
 - **Propósito:** Armazena variáveis sensíveis (URLs, credenciais)
-- **Conteúdo:** Gerado a partir de `.env.example`, nunca é commitado
 - **Segurança:** Adicionado ao `.gitignore`
 - **Para quem?** Ambiente local apenas - em produção vem de GitHub Secrets
 
@@ -497,13 +479,21 @@ Scripts Node.js utilitários (não código de teste).
 
 ## 🎯 Tipos de Teste
 
-| Tipo | VUs | Duração | Propósito |
-|------|-----|---------|-----------|
-| **Smoke** | 1 | 10s | Validação rápida de resposta |
-| **Load** | 10 | 1m | Comportamento sob carga normal |
-| **Stress** | 50 | 5m | Encontrar limite da aplicação |
-| **Spike** | 100 | 1m | Picos repentinos de tráfego |
-| **Soak** | 20 | 30m | Problemas de longa duração |
+Cada tipo de teste usa **scenarios com stages** otimizados para simular padrões realistas de tráfego:
+
+| Tipo | VUs | Duração | Propósito | Stages |
+|------|-----|---------|-----------|--------|
+| **Smoke** | 1 | 15s | Validação rápida de resposta | 5s ramp-up → 5s mantém → 5s ramp-down |
+| **Load** | 10 | 90s | Comportamento sob carga normal | 15s → 5 VUs → 30s → 10 VUs → mantém 30s → 15s ramp-down |
+| **Stress** | 50 | 5m30s | Encontrar limite da aplicação | Aumenta gradualmente: 10→20→30→40→50 VUs |
+| **Spike** | 100 | 70s | Picos repentinos de tráfego | 10s → 10 VUs → 10s SPIKE → 100 VUs → mantém 30s → volta |
+| **Soak** | 20 | 30m | Problemas de longa duração | 2m ramp-up → 26m carga constante → 2m ramp-down |
+
+**Por que usar stages?**
+- ✅ Simula tráfego realista (não todos VUs de uma vez)
+- ✅ Permite warm-up e cool-down adequados
+- ✅ Identifica problemas em diferentes níveis de carga
+- ✅ Evita sobrecarga abrupta no sistema
 
 ---
 
