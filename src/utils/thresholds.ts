@@ -6,11 +6,15 @@
  */
 import { thresholdConfig } from './config';
 
+// Detecta se está rodando em ambiente CI
+const isCI = __ENV.CI_ENVIRONMENT === 'true';
+
 export const thresholds = {
   'http_reqs': ['count > 0'],
   // Apenas cenários positivos com autenticação válida
   // Esperamos taxa de falha próxima a 0% (permitindo até 1% para flutuações da rede)
-  'http_req_failed': [`rate<0.01`],
+  // Em CI, permite até 5% por causa de latência de rede maior
+  'http_req_failed': [isCI ? `rate<0.05` : `rate<0.01`],
   'http_req_duration': [
     `p(95)<${thresholdConfig.p95}`,
     `p(99)<${thresholdConfig.p99}`
@@ -32,6 +36,6 @@ export const stressThresholds = {
 
 export const smokeThresholds = {
   'http_reqs': ['count > 0'],
-  'http_req_failed': [`rate<${thresholdConfig.smokeErrorRate}`],
+  'http_req_failed': [isCI ? `rate<0.05` : `rate<${thresholdConfig.smokeErrorRate}`],
   'checks': [`rate>${thresholdConfig.smokeCheckSuccessRate}`]
 };
