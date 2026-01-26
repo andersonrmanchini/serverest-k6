@@ -36,7 +36,7 @@ export class ProductApiService {
    * Requer autenticação
    */
   createProduct(product: Product, token?: string) {
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+    const headers = token ? { 'Authorization': token } : undefined;
     // Usar allowAllStatus=true para não contar 401 como erro quando autenticação falha
     return this.api.post('/produtos', product, headers, true);
   }
@@ -47,7 +47,7 @@ export class ProductApiService {
    * Requer autenticação
    */
   updateProduct(id: string, product: Partial<Product>, token?: string) {
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+    const headers = token ? { 'Authorization': token } : undefined;
     return this.api.put(`/produtos/${id}`, product, headers);
   }
 
@@ -57,7 +57,7 @@ export class ProductApiService {
    * Requer autenticação
    */
   deleteProduct(id: string, token?: string) {
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : undefined;
+    const headers = token ? { 'Authorization': token } : undefined;
     return this.api.delete(`/produtos/${id}`, headers);
   }
 }

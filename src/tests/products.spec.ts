@@ -8,6 +8,11 @@ import { HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 const productService = new ProductApiService();
 const authService = new AuthService();
 
+// Credenciais fixas de admin para testes de performance
+// Simula usuário real que já existe no sistema
+const ADMIN_EMAIL = 'fulano@qa.com';
+const ADMIN_PASSWORD = 'teste';
+
 /**
  * Teste de Performance - Endpoint: GET /produtos
  * Simula listagem de produtos com diferentes volumes de dados
@@ -89,43 +94,41 @@ export function getProductByIdTest(productId?: string) {
 
 /**
  * Teste de Performance - Endpoint: POST /produtos
- * Simula criação de novos produtos SEM autenticação
+ * Simula criação de novos produtos COM autenticação válida
  * 
- * Testa o comportamento da API quando não há token válido.
- * Espera-se retorno 401 (Unauthorized) neste cenário.
+ * Representa cenário real onde usuário autenticado cria produtos.
+ * Espera-se retorno 201 (Created) com sucesso.
  */
-export function createProductTest(token?: string) {
+export function createProductWithAuthTest() {
   group('POST /produtos - Create Product (Authenticated)', () => {
-    const newProduct = generateFakeProduct();
+    // 1. Autenticar com usuário admin existente
+    const token = authService.login(ADMIN_EMAIL, ADMIN_PASSWORD);
     
-    // Não usar autenticação neste teste de performance
-    // O objetivo é testar se a API retorna 401 corretamente
-    const response = productService.createProduct(newProduct, undefined);
-    
-    // Espera-se 401 (sem autenticação)
-    check(response, {
-      'authentication required (401)': (r) => r.status === HTTP_STATUS.UNAUTHORIZED
-    });
+    // 2. Criar produto com token válido
+    if (token) {
+      const newProduct = generateFakeProduct();
+      const response = productService.createProduct(newProduct, token);
+      
+      checkRequest(response, HTTP_STATUS.CREATED, PERF_THRESHOLDS.P95_DURATION, {
+        'response is valid JSON': (r) => {
+          try {
+            JSON.parse(r.body);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        'response has _id field': (r) => {
+          try {
+            const json = JSON.parse(r.body);
+            return '_id' in json;
+          } catch {
+            return false;
+          }
+        }
+      });
+    }
   });
-}
-
-/**
- * Teste de Performance com Paginação
- * DESABILITADO: ServeRest não suporta skip/limit como query parameters
- * 
- * A API apenas retorna todos os produtos quando chamada sem parâmetros.
- * Para implementar paginação, seria necessário usar um parâmetro diferente
- * ou implementar paginação no lado do cliente.
- */
-export function paginationTest() {
-  // Desabilitado até que a API suporte parâmetros de paginação
-  // group('Pagination Performance', () => {
-  //   const response = productService.listProducts();
-  //   check(response, {
-  //     'pagination with limit=10 returns 200': (r) => r.status === HTTP_STATUS.OK,
-  //     'pagination with limit=10 response time < 1000ms': (r) => r.timings.duration < 1000
-  //   });
-  // });
 }
 
 /**
@@ -144,12 +147,12 @@ export function validateErrorRate() {
 
 /**
  * Cenário completo de testes de produtos
+ * Apenas cenários positivos que simulam uso real do sistema
  */
 export function productScenario() {
   listProductsTest();
   getProductByIdTest();
-  createProductTest();
-  paginationTest();
+  createProductWithAuthTest();
   validateErrorRate();
 }
 
