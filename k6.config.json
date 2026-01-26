@@ -61,11 +61,11 @@
     "description": "Taxas de erro aceitáveis",
     
     "max_error_rate": {
-      "description": "Taxa máxima de erro HTTP (testes normais) - 20% (para acomodar autenticação falhando em POST /produtos)",
+      "description": "Taxa máxima de erro HTTP (testes normais) - 1% (apenas cenários positivos com autenticação válida)",
       "type": "number",
       "format": "percentage",
-      "default": 0.05,
-      "value": 0.2
+      "default": 0.01,
+      "value": 0.01
     },
     
     "max_failed_checks_rate": {
@@ -77,19 +77,19 @@
     },
     
     "stress_error_rate": {
-      "description": "Taxa máxima de erro HTTP (stress tests) - 10%",
+      "description": "Taxa máxima de erro HTTP (stress tests) - 5% (pode haver mais erros sob estresse extremo)",
       "type": "number",
       "format": "percentage",
-      "default": 0.1,
-      "value": 0.1
+      "default": 0.05,
+      "value": 0.05
     },
     
     "smoke_error_rate": {
-      "description": "Taxa máxima de erro HTTP (smoke tests) - 20%",
+      "description": "Taxa máxima de erro HTTP (smoke tests) - 1% (apenas cenários positivos)",
       "type": "number",
       "format": "percentage",
-      "default": 0.2,
-      "value": 0.2
+      "default": 0.01,
+      "value": 0.01
     }
   },
 
