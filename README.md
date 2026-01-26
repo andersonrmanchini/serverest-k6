@@ -95,11 +95,146 @@ npm run report:open              # Abrir relatório antigo (básico)
 
 ### Outros Tipos
 ```bash
-npm run test:smoke      # Validação rápida (1 VU, 10s)
-npm run test:load       # Carga normal (10 VUs, 1m)
-npm run test:stress     # Encontrar limite (50 VUs, 5m)
-npm run test:spike      # Picos de tráfego (100 VUs, 1m)
+npm run test:smoke      # Validação rápida (1 VU, 15s)
+npm run test:load       # Carga normal (10 VUs, 1m30s)
+npm run test:stress     # Encontrar limite (50 VUs, 5m30s)
+npm run test:spike      # Picos de tráfego (100 VUs, 1m10s)
 npm run test:soak       # Longa duração (20 VUs, 30m)
+```
+
+---
+
+## 📊 Tipos de Teste Detalhados
+
+Cada tipo de teste possui **stages** (estágios) configurados para simular padrões realistas de tráfego.
+
+### 🔍 SMOKE (Validação Rápida)
+**Objetivo:** Validar se o sistema está funcional com carga mínima
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Ramp-up | 5s | 1 VU | Aquecimento suave |
+| 2️⃣ Manter | 5s | 1 VU | Mantém carga mínima |
+| 3️⃣ Ramp-down | 5s | 0 VUs | Finaliza gradualmente |
+
+**⏱️ Duração Total:** 15 segundos  
+**👥 VUs Máximo:** 1  
+**🎯 Uso:** Validação rápida antes de testes maiores, CI/CD
+
+```bash
+npm run test:smoke
+```
+
+---
+
+### 📈 LOAD (Carga Normal)
+**Objetivo:** Testar comportamento sob carga normal esperada
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Ramp-up gradual | 15s | 5 VUs | Aumenta suavemente |
+| 2️⃣ Aumenta carga | 30s | 10 VUs | Atinge carga normal |
+| 3️⃣ Mantém carga | 30s | 10 VUs | Permanece constante |
+| 4️⃣ Ramp-down | 15s | 0 VUs | Finaliza gradualmente |
+
+**⏱️ Duração Total:** 1 minuto e 30 segundos  
+**👥 VUs Máximo:** 10  
+**🎯 Uso:** Testar comportamento em condições normais de uso
+
+```bash
+npm run test:load
+```
+
+---
+
+### 🔥 STRESS (Encontrar Limite)
+**Objetivo:** Encontrar o ponto de saturação do sistema
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Warm-up | 30s | 10 VUs | Aquecimento |
+| 2️⃣ Aumenta gradualmente | 1m | 20 VUs | Duplica carga |
+| 3️⃣ Continua aumentando | 1m | 30 VUs | +50% carga |
+| 4️⃣ Aproxima do limite | 1m | 40 VUs | +33% carga |
+| 5️⃣ Atinge o limite | 1m | 50 VUs | Carga máxima |
+| 6️⃣ Mantém no limite | 1m | 50 VUs | Sustenta máximo |
+| 7️⃣ Ramp-down | 30s | 0 VUs | Finaliza |
+
+**⏱️ Duração Total:** 5 minutos e 30 segundos  
+**👥 VUs Máximo:** 50  
+**🎯 Uso:** Descobrir capacidade máxima, identificar gargalos
+
+```bash
+npm run test:stress
+```
+
+---
+
+### ⚡ SPIKE (Picos Súbitos)
+**Objetivo:** Testar resposta a picos repentinos de tráfego
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Carga normal | 10s | 10 VUs | Baseline |
+| 2️⃣ **Spike súbito!** | 10s | 100 VUs | 🚀 **+900% instantâneo** |
+| 3️⃣ Mantém pico | 30s | 100 VUs | Sustenta carga alta |
+| 4️⃣ Volta ao normal | 10s | 10 VUs | Retorna ao baseline |
+| 5️⃣ Ramp-down | 10s | 0 VUs | Finaliza |
+
+**⏱️ Duração Total:** 1 minuto e 10 segundos  
+**👥 VUs Máximo:** 100  
+**🎯 Uso:** Simular eventos (Black Friday, lançamentos), testar elasticidade
+
+```bash
+npm run test:spike
+```
+
+---
+
+### 🏃 SOAK (Longa Duração)
+**Objetivo:** Detectar problemas de memory leak e degradação ao longo do tempo
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Ramp-up | 2m | 20 VUs | Aquecimento |
+| 2️⃣ **Mantém por longo período** | 26m | 20 VUs | 🕐 **Carga constante** |
+| 3️⃣ Ramp-down | 2m | 0 VUs | Finaliza |
+
+**⏱️ Duração Total:** 30 minutos  
+**👥 VUs Máximo:** 20  
+**🎯 Uso:** Detectar vazamentos de memória, degradação de performance
+
+```bash
+npm run test:soak
+```
+
+---
+
+### ⚙️ DEFAULT (Configurável)
+**Objetivo:** Teste customizado usando valores do `k6.config.json`
+
+| Stage | Duração | Target VUs | Ação |
+|-------|---------|------------|------|
+| 1️⃣ Ramp-up | 10s | Configurável | Definido em `k6.config.json` |
+| 2️⃣ Manter | Configurável | Configurável | Usa `testConfig.duration` |
+| 3️⃣ Ramp-down | 10s | 0 VUs | Finaliza |
+
+**⏱️ Duração Total:** Configurável via `k6.config.json`  
+**👥 VUs Máximo:** Configurável (`testConfig.vus`)  
+**🎯 Uso:** Testes customizados, experimentação
+
+```bash
+npm run test
+```
+
+**Para customizar:** Edite os valores em `k6.config.json`:
+```json
+{
+  "testConfig": {
+    "vus": 5,           // ← Altere número de VUs
+    "duration": "30s"   // ← Altere duração
+  }
+}
 ```
 
 ---
