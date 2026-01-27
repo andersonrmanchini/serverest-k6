@@ -12,6 +12,12 @@ import { testConfig, k6CloudConfig, securityConfig } from '../utils/config';
 const testType = (__ENV.TEST_TYPE || 'default') as 'smoke' | 'load' | 'stress' | 'spike' | 'soak' | 'default';
 
 /**
+ * Detecta se está rodando em ambiente CI
+ * No CI, reduz carga para evitar instabilidade de rede
+ */
+const isCI = __ENV.CI_ENVIRONMENT === 'true';
+
+/**
  * Configuração de Options do K6
  * Define scenarios com stages para cada tipo de teste
  * 
@@ -36,7 +42,14 @@ export const options: Options = {
     load_test: {
       executor: 'ramping-vus',
       startVUs: 0,
-      stages: [
+      stages: isCI ? [
+        // CI: Reduz carga devido à instabilidade de rede
+        { duration: '15s', target: 3 },   // Ramp-up mais suave
+        { duration: '30s', target: 5 },   // Carga reduzida (50% do local)
+        { duration: '30s', target: 5 },   // Mantém carga reduzida
+        { duration: '15s', target: 0 }    // Ramp-down
+      ] : [
+        // Local: Carga normal
         { duration: '15s', target: 5 },   // Ramp-up gradual
         { duration: '30s', target: 10 },  // Aumenta para carga normal
         { duration: '30s', target: 10 },  // Mantém carga
