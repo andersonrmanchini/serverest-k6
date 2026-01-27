@@ -10,10 +10,12 @@ import { apiConfig } from '../utils/config';
 export class ApiService {
   private baseUrl: string;
   private defaultTimeout: string;
+  private isCI: boolean;
 
   constructor(baseUrl: string = apiConfig.baseUrl, timeout: string = apiConfig.timeout) {
     this.baseUrl = baseUrl;
     this.defaultTimeout = timeout;
+    this.isCI = __ENV.CI_ENVIRONMENT === 'true';
   }
 
   /**
@@ -22,8 +24,11 @@ export class ApiService {
   get(endpoint: string, params?: Record<string, any>) {
     const url = this.buildUrl(endpoint, params);
     
+    // No CI, aumenta timeout e usa configuração mais robusta
+    const timeout = this.isCI ? '60s' : this.defaultTimeout;
+    
     return http.get(url, {
-      timeout: this.defaultTimeout,
+      timeout: timeout,
       tags: { name: endpoint, method: 'GET' }
     });
   }
@@ -42,9 +47,12 @@ export class ApiService {
       ...headers
     };
     
+    // No CI, aumenta timeout para lidar com latência maior
+    const timeout = this.isCI ? '60s' : this.defaultTimeout;
+    
     const options: any = {
       headers: defaultHeaders,
-      timeout: this.defaultTimeout,
+      timeout: timeout,
       tags: { name: endpoint, method: 'POST' }
     };
     
@@ -66,9 +74,12 @@ export class ApiService {
       ...headers
     };
     
+    // No CI, aumenta timeout para lidar com latência maior
+    const timeout = this.isCI ? '60s' : this.defaultTimeout;
+    
     return http.put(url, JSON.stringify(payload), {
       headers: defaultHeaders,
-      timeout: this.defaultTimeout,
+      timeout: timeout,
       tags: { name: endpoint, method: 'PUT' }
     });
   }
@@ -82,9 +93,12 @@ export class ApiService {
       ...headers
     };
     
+    // No CI, aumenta timeout para lidar com latência maior
+    const timeout = this.isCI ? '60s' : this.defaultTimeout;
+    
     return http.del(url, null, {
       headers: defaultHeaders,
-      timeout: this.defaultTimeout,
+      timeout: timeout,
       tags: { name: endpoint, method: 'DELETE' }
     });
   }

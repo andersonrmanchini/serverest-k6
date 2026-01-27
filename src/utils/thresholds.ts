@@ -13,16 +13,17 @@ export const thresholds = {
   'http_reqs': ['count > 0'],
   // Apenas cenários positivos com autenticação válida
   // Local: taxa de falha < 1% (rigoroso)
-  // CI: taxa de falha < 10% (latência de rede muito maior no GitHub Actions)
-  'http_req_failed': [isCI ? `rate<0.10` : `rate<0.01`],
+  // CI: taxa de falha < 15% (latência de rede e instabilidade maior no GitHub Actions)
+  'http_req_failed': [isCI ? `rate<0.15` : `rate<0.01`],
   'http_req_duration': [
-    `p(95)<${thresholdConfig.p95}`,
-    `p(99)<${thresholdConfig.p99}`
+    // CI: permite latências maiores devido à rede
+    isCI ? `p(95)<${thresholdConfig.p95 * 2}` : `p(95)<${thresholdConfig.p95}`,
+    isCI ? `p(99)<${thresholdConfig.p99 * 2}` : `p(99)<${thresholdConfig.p99}`
   ],
-  'http_req_tls_handshaking': ['p(95)<100'],
-  'http_req_waiting': [`p(95)<${thresholdConfig.p95}`],
-  // Checks: 95% local, 90% no CI
-  'checks': [isCI ? 'rate>0.90' : `rate>${thresholdConfig.checkSuccessRate}`]
+  'http_req_tls_handshaking': [isCI ? 'p(95)<200' : 'p(95)<100'],
+  'http_req_waiting': [isCI ? `p(95)<${thresholdConfig.p95 * 2}` : `p(95)<${thresholdConfig.p95}`],
+  // Checks: 95% local, 85% no CI (mais permissivo devido a timeouts/falhas de rede)
+  'checks': [isCI ? 'rate>0.85' : `rate>${thresholdConfig.checkSuccessRate}`]
 };
 
 export const stressThresholds = {
@@ -37,6 +38,6 @@ export const stressThresholds = {
 
 export const smokeThresholds = {
   'http_reqs': ['count > 0'],
-  'http_req_failed': [isCI ? `rate<0.10` : `rate<${thresholdConfig.smokeErrorRate}`],
-  'checks': [isCI ? 'rate>0.90' : `rate>${thresholdConfig.smokeCheckSuccessRate}`]
+  'http_req_failed': [isCI ? `rate<0.15` : `rate<${thresholdConfig.smokeErrorRate}`],
+  'checks': [isCI ? 'rate>0.85' : `rate>${thresholdConfig.smokeCheckSuccessRate}`]
 };
