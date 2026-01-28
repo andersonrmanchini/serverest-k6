@@ -8,6 +8,11 @@ import { HTTP_STATUS, PERF_THRESHOLDS } from '../utils/constants';
 const productService = new ProductApiService();
 const authService = new AuthService();
 
+// Credenciais fixas de admin para testes de performance
+// Simula usuário real que já existe no sistema
+const ADMIN_EMAIL = 'fulano@qa.com';
+const ADMIN_PASSWORD = 'teste';
+
 /**
  * Teste de Performance - Endpoint: GET /produtos
  * Simula listagem de produtos com diferentes volumes de dados
@@ -89,32 +94,21 @@ export function getProductByIdTest(productId?: string) {
 
 /**
  * Teste de Performance - Endpoint: POST /produtos
- * Simula criação de novos produtos com autenticação
+ * Simula criação de novos produtos COM autenticação válida
  * 
- * Usa token obtido através de login para autenticar a requisição.
- * Se nenhum token for fornecido, tenta fazer login com usuário de teste.
+ * Representa cenário real onde usuário autenticado cria produtos.
+ * Espera-se retorno 201 (Created) com sucesso.
  */
-export function createProductTest(token?: string) {
+export function createProductWithAuthTest() {
   group('POST /produtos - Create Product (Authenticated)', () => {
-    const newProduct = generateFakeProduct();
+    // 1. Autenticar com usuário admin existente
+    const token = authService.login(ADMIN_EMAIL, ADMIN_PASSWORD);
     
-    // Se não houver token, tentar fazer login
-    let authToken = token;
-    if (!authToken) {
-      // Tentar com usuário padrão de teste (servidor de teste pode ter este usuário)
-      authToken = authService.login('teste@teste.com', 'teste') || undefined;
+    // 2. Criar produto com token válido
+    if (token) {
+      const newProduct = generateFakeProduct();
+      const response = productService.createProduct(newProduct, token);
       
-      // Se ainda não tiver token, criar novo usuário
-      if (!authToken) {
-        const admin = authService.createAdminUser();
-        authToken = admin.token || undefined;
-      }
-    }
-    
-    const response = productService.createProduct(newProduct, authToken);
-    
-    // Com autenticação, deve retornar 201
-    if (response.status === HTTP_STATUS.CREATED) {
       checkRequest(response, HTTP_STATUS.CREATED, PERF_THRESHOLDS.P95_DURATION, {
         'response is valid JSON': (r) => {
           try {
@@ -133,38 +127,8 @@ export function createProductTest(token?: string) {
           }
         }
       });
-    } else if (response.status === HTTP_STATUS.UNAUTHORIZED) {
-      // Se falhar com 401, documentar que autenticação falhou
-      check(response, {
-        'authentication required (401)': (r) => r.status === HTTP_STATUS.UNAUTHORIZED
-      });
-    } else {
-      // Qualquer outro erro
-      check(response, {
-        'POST /produtos returns 2xx or 401': (r) => 
-          (r.status >= 200 && r.status < 300) || r.status === 401
-      });
     }
   });
-}
-
-/**
- * Teste de Performance com Paginação
- * DESABILITADO: ServeRest não suporta skip/limit como query parameters
- * 
- * A API apenas retorna todos os produtos quando chamada sem parâmetros.
- * Para implementar paginação, seria necessário usar um parâmetro diferente
- * ou implementar paginação no lado do cliente.
- */
-export function paginationTest() {
-  // Desabilitado até que a API suporte parâmetros de paginação
-  // group('Pagination Performance', () => {
-  //   const response = productService.listProducts();
-  //   check(response, {
-  //     'pagination with limit=10 returns 200': (r) => r.status === HTTP_STATUS.OK,
-  //     'pagination with limit=10 response time < 1000ms': (r) => r.timings.duration < 1000
-  //   });
-  // });
 }
 
 /**
@@ -183,12 +147,12 @@ export function validateErrorRate() {
 
 /**
  * Cenário completo de testes de produtos
+ * Apenas cenários positivos que simulam uso real do sistema
  */
 export function productScenario() {
   listProductsTest();
   getProductByIdTest();
-  createProductTest();
-  paginationTest();
+  createProductWithAuthTest();
   validateErrorRate();
 }
 

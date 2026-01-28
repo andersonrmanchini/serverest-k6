@@ -2,16 +2,33 @@
  * Script para gerar relatório HTML visual detalhado dos testes k6
  * Extrai dados do analyze-results.js e cria um dashboard interativo
  * Mostra checks separados por cenário de teste
+ * 
+ * Uso: node generate-detailed-report.js [input.json] [output.html] [testType]
  */
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Parâmetros CLI
+const resultsFile = process.argv[2] || 'test-results/results.json';
+const outputFile = process.argv[3] || 'test-results/report-detailed.html';
+const testType = process.argv[4] || 'default';
+
+// Mapeamento de nomes amigáveis
+const testTypeNames = {
+  'smoke': '🔬 Smoke Test',
+  'load': '📊 Load Test',
+  'stress': '💪 Stress Test',
+  'spike': '⚡ Spike Test',
+  'soak': '⏱️ Soak Test',
+  'default': '🎯 Performance Test'
+};
+
 function extractScenarioData() {
   try {
     // Executar analyze-results.js e capturar output
-    const output = execSync('node scripts/analyze-results.js test-results/results.json 2>&1', {
+    const output = execSync(`node scripts/analyze-results.js "${resultsFile}" 2>&1`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe']
     });
@@ -665,6 +682,9 @@ function generateDetailedHTML(data) {
       <h1>📊 Relatório Detalhado de Testes k6</h1>
       <p>ServeRest API - Performance Testing Suite</p>
       <div class="header-badges">
+        <div class="test-type-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; font-size: 18px; font-weight: 600; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+          ${testTypeNames[testType]}
+        </div>
         <div class="status-badge">${statusText}</div>
       </div>
       <div class="timestamp">Gerado em: ${timestamp}</div>
@@ -740,7 +760,7 @@ function generateDetailedHTML(data) {
 
 function main() {
   try {
-    console.log('📊 Gerando relatório detalhado...');
+    console.log(`📊 Gerando relatório detalhado... (Tipo: ${testTypeNames[testType]})`);
     const data = extractScenarioData();
     
     if (!data || Object.keys(data.scenarios).length === 0) {
@@ -749,10 +769,10 @@ function main() {
     }
 
     const html = generateDetailedHTML(data);
-    const outputFile = 'test-results/report-detailed.html';
 
     fs.writeFileSync(outputFile, html, 'utf-8');
     console.log(`✅ Relatório detalhado gerado: ${outputFile}`);
+    console.log(`📝 Tipo de teste: ${testTypeNames[testType]}`);
     console.log('📂 Abra no navegador para visualizar os checks por cenário');
   } catch (error) {
     console.error('❌ Erro ao gerar relatório:', error.message);

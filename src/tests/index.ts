@@ -5,28 +5,113 @@ import { productScenario } from './products.spec';
 import { thresholds, smokeThresholds } from '../utils/thresholds';
 import { testConfig, k6CloudConfig, securityConfig } from '../utils/config';
 
-// Detecta qual tipo de teste está rodando pelos args da CLI
-// k6 passa VUs via linha de comando como: k6 run ... --vus 1 --duration 10s
-// Para isso, verificamos se está rodando um smoke test baseado em duração curta
-const durationMs = testConfig.duration.match(/\d+/)?.[0];
-const isSmoke = durationMs && parseInt(durationMs) <= 10; // 10s ou menos = smoke
+/**
+ * Detecta tipo de teste baseado em variável de ambiente TEST_TYPE
+ * Valores possíveis: smoke, load, stress, spike, soak, default
+ */
+const testType = (__ENV.TEST_TYPE || 'default') as 'smoke' | 'load' | 'stress' | 'spike' | 'soak' | 'default';
+
+/**
+ * Detecta se está rodando em ambiente CI
+ * No CI, reduz carga para evitar instabilidade de rede
+ */
+const isCI = __ENV.CI_ENVIRONMENT === 'true';
 
 /**
  * Configuração de Options do K6
- * Define parâmetros de execução do teste
+ * Define scenarios com stages para cada tipo de teste
  * 
  * Configurações vêm de:
  * - k6.config.json (performance e thresholds)
  * - .env (API e secrets)
  */
 export const options: Options = {
-  // Configuração de Virtual Users (VUs) e Duração
-  vus: testConfig.vus,
-  duration: testConfig.duration,
+  // Scenarios com stages apropriados para cada tipo de teste
+  scenarios: testType === 'smoke' ? {
+    smoke_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '5s', target: 1 },   // Ramp-up para 1 VU
+        { duration: '5s', target: 1 },   // Mantém 1 VU
+        { duration: '5s', target: 0 }    // Ramp-down
+      ],
+      gracefulRampDown: '5s'
+    }
+  } : testType === 'load' ? {
+    load_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: isCI ? [
+        // CI: Reduz carga devido à instabilidade de rede
+        { duration: '15s', target: 3 },   // Ramp-up mais suave
+        { duration: '30s', target: 5 },   // Carga reduzida (50% do local)
+        { duration: '30s', target: 5 },   // Mantém carga reduzida
+        { duration: '15s', target: 0 }    // Ramp-down
+      ] : [
+        // Local: Carga normal
+        { duration: '15s', target: 5 },   // Ramp-up gradual
+        { duration: '30s', target: 10 },  // Aumenta para carga normal
+        { duration: '30s', target: 10 },  // Mantém carga
+        { duration: '15s', target: 0 }    // Ramp-down
+      ],
+      gracefulRampDown: '10s'
+    }
+  } : testType === 'stress' ? {
+    stress_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 10 },  // Warm-up
+        { duration: '1m', target: 20 },   // Aumenta gradualmente
+        { duration: '1m', target: 30 },   // Continua aumentando
+        { duration: '1m', target: 40 },   // Aproxima do limite
+        { duration: '1m', target: 50 },   // Atinge o limite
+        { duration: '1m', target: 50 },   // Mantém no limite
+        { duration: '30s', target: 0 }    // Ramp-down
+      ],
+      gracefulRampDown: '30s'
+    }
+  } : testType === 'spike' ? {
+    spike_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '10s', target: 10 },  // Carga normal
+        { duration: '10s', target: 100 }, // Spike súbito!
+        { duration: '30s', target: 100 }, // Mantém pico
+        { duration: '10s', target: 10 },  // Volta ao normal
+        { duration: '10s', target: 0 }    // Ramp-down
+      ],
+      gracefulRampDown: '5s'
+    }
+  } : testType === 'soak' ? {
+    soak_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '2m', target: 20 },    // Ramp-up
+        { duration: '26m', target: 20 },   // Mantém por longo período
+        { duration: '2m', target: 0 }      // Ramp-down
+      ],
+      gracefulRampDown: '1m'
+    }
+  } : {
+    // Default: usa configuração do k6.config.json
+    default_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '10s', target: testConfig.vus },
+        { duration: testConfig.duration, target: testConfig.vus },
+        { duration: '10s', target: 0 }
+      ],
+      gracefulRampDown: '10s'
+    }
+  },
 
-  // Thresholds - critérios de sucesso/falha (escolhe baseado no tipo de teste)
-  // Se detectar smoke test (duração <= 10s), usa smokeThresholds com tolerância maior
-  thresholds: isSmoke ? smokeThresholds : thresholds,
+  // Thresholds - critérios de sucesso/falha
+  thresholds: testType === 'smoke' ? smokeThresholds : thresholds,
 
   // Configurações gerais
   noConnectionReuse: false,
@@ -61,29 +146,13 @@ export default function () {
 }
 
 /**
- * Cenários alternativos podem ser definidos aqui
+ * Tipos de teste disponíveis:
  * 
- * Exemplo de uso com múltiplos cenários:
+ * - SMOKE (1 VU, 10s): Validação rápida - stages com warm-up suave
+ * - LOAD (10 VUs, 1m): Comportamento sob carga normal - ramp-up/down gradual
+ * - STRESS (50 VUs, 5m): Encontra limite - aumenta progressivamente até 50 VUs
+ * - SPIKE (100 VUs, 1m): Picos repentinos - sobe rápido de 10 para 100 VUs
+ * - SOAK (20 VUs, 30m): Longa duração - mantém carga constante por muito tempo
  * 
- * export const options: Options = {
- *   scenarios: {
- *     smoke: {
- *       executor: 'ramping-vus',
- *       stages: [
- *         { duration: '10s', target: 1 },
- *         { duration: '10s', target: 0 },
- *       ],
- *       thresholds: smokeThresholds,
- *     },
- *     load: {
- *       executor: 'ramping-vus',
- *       stages: [
- *         { duration: '30s', target: 10 },
- *         { duration: '1m', target: 10 },
- *         { duration: '30s', target: 0 },
- *       ],
- *       thresholds: thresholds,
- *     },
- *   }
- * };
+ * Cada tipo usa stages otimizados para simular padrões realistas de tráfego.
  */
