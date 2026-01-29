@@ -1,4 +1,4 @@
-import { check, group } from 'k6';
+import { check, group, sleep } from 'k6';
 import { ProductApiService } from '../services/product.api.service';
 import { AuthService } from '../services/auth.service';
 import { generateFakeProduct } from '../utils/data.factory';
@@ -51,6 +51,9 @@ export function listProductsTest() {
         }
       }
     });
+    
+    // Simula tempo de processamento do usuário (think time)
+    sleep(0.5);
   });
 }
 
@@ -88,6 +91,9 @@ export function getProductByIdTest(productId?: string) {
           }
         }
       });
+      
+      // Simula tempo de processamento do usuário (think time)
+      sleep(0.5);
     }
   });
 }
@@ -127,6 +133,9 @@ export function createProductWithAuthTest() {
           }
         }
       });
+      
+      // Simula tempo de processamento do usuário (think time)
+      sleep(0.5);
     }
   });
 }
@@ -142,6 +151,9 @@ export function validateErrorRate() {
       'status is 2xx': (r) => r.status >= 200 && r.status < 300,
       'no connection error': (r) => r.status !== 0
     });
+    
+    // Simula tempo de processamento do usuário (think time)
+    sleep(0.5);
   });
 }
 
