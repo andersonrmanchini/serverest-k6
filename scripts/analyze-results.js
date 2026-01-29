@@ -21,6 +21,16 @@ function analyzeResults(jsonFile) {
   const metrics = {};
   const groups = {};
   const scenarios = new Set();
+  const httpErrors = {
+    total: 0,
+    byStatus: {},
+    byType: {
+      expectedAuth: 0,  // 401 esperados
+      networkErrors: 0, // timeouts, conexão
+      serverErrors: 0,  // 5xx
+      clientErrors: 0   // 4xx (exceto 401)
+    }
+  };
 
   // Parse NDJSON
   lines.forEach(line => {
@@ -58,13 +68,34 @@ function analyzeResults(jsonFile) {
         }
       }
 
-      // Coletar outras métricas
+      // Coletar outras métricas e classificar erros
       if (data.type === 'Point' && data.metric && !['checks', 'iterations', 'vus', 'vus_max'].includes(data.metric)) {
         const metric = data.metric;
         if (!metrics[metric]) {
           metrics[metric] = [];
         }
         metrics[metric].push(data.data.value);
+        
+        // Classificar erros HTTP
+        if (data.metric === 'http_req_failed' && data.data.value === 1) {
+          httpErrors.total++;
+          const status = data.data.tags?.status;
+          if (status) {
+            httpErrors.byStatus[status] = (httpErrors.byStatus[status] || 0) + 1;
+            
+            // Classificar por tipo
+            if (status === '401') {
+              httpErrors.byType.expectedAuth++;
+            } else if (status >= '500') {
+              httpErrors.byType.serverErrors++;
+            } else if (status >= '400') {
+              httpErrors.byType.clientErrors++;
+            }
+          } else {
+            // Sem status = erro de rede/timeout
+            httpErrors.byType.networkErrors++;
+          }
+        }
       }
 
       // Agrupar por grupo
@@ -93,11 +124,11 @@ function analyzeResults(jsonFile) {
     }
   });
 
-  return { checks, metrics, groups, scenarios: Array.from(scenarios) };
+  return { checks, metrics, groups, scenarios: Array.from(scenarios), httpErrors };
 }
 
 function printReport(analysis) {
-  const { checks, metrics, groups, scenarios } = analysis;
+  const { checks, metrics, groups, scenarios, httpErrors } = analysis;
   
   console.log('\n' + '═'.repeat(80));
   console.log('📊 RELATÓRIO DETALHADO DE TESTES K6');
@@ -167,15 +198,78 @@ function printReport(analysis) {
 
   // === ERROS E FALHAS ===
   console.log('\n' + '═'.repeat(80));
-  console.log('⚠️  ANÁLISE DE ERROS E FALHAS\n');
+  console.log('⚠️  ANÁLISE DETALHADA DE ERROS E FALHAS\n');
   
   if (metrics['http_req_failed'] && metrics['http_req_failed'].length > 0) {
     const failedReqs = metrics['http_req_failed'].filter(v => v !== 0).length;
     const totalReqs = metrics['http_req_failed'].length;
     const failureRate = ((failedReqs / totalReqs) * 100).toFixed(2);
     
-    console.log(`🔴 Requisições falhadas: ${failedReqs}/${totalReqs} (${failureRate}%)`);
-    console.log('   Nota: Falhas esperadas em autenticação (401) são registradas como falhas de requisição\n');
+    console.log(`🔴 Requisições falhadas: ${failedReqs}/${totalReqs} (${failureRate}%)\n`);
+    
+    // Análise detalhada por tipo
+    if (httpErrors.total > 0) {
+      console.log('📊 CLASSIFICAÇÃO DE FALHAS:\n');
+      
+      // Falhas por tipo
+      console.log('   Por Tipo:');
+      if (httpErrors.byType.expectedAuth > 0) {
+        const pct = ((httpErrors.byType.expectedAuth / httpErrors.total) * 100).toFixed(1);
+        console.log(`   ✓ Autenticação esperada (401): ${httpErrors.byType.expectedAuth} (${pct}%) - ESPERADO`);
+      }
+      if (httpErrors.byType.networkErrors > 0) {
+        const pct = ((httpErrors.byType.networkErrors / httpErrors.total) * 100).toFixed(1);
+        console.log(`   ⚠️  Erros de rede/timeout: ${httpErrors.byType.networkErrors} (${pct}%) - INFRAESTRUTURA`);
+      }
+      if (httpErrors.byType.serverErrors > 0) {
+        const pct = ((httpErrors.byType.serverErrors / httpErrors.total) * 100).toFixed(1);
+        console.log(`   ❌ Erros do servidor (5xx): ${httpErrors.byType.serverErrors} (${pct}%) - CRÍTICO`);
+      }
+      if (httpErrors.byType.clientErrors > 0) {
+        const pct = ((httpErrors.byType.clientErrors / httpErrors.total) * 100).toFixed(1);
+        console.log(`   ⚠️  Erros do cliente (4xx): ${httpErrors.byType.clientErrors} (${pct}%)`);
+      }
+      
+      // Falhas por status HTTP
+      if (Object.keys(httpErrors.byStatus).length > 0) {
+        console.log('\n   Por Status HTTP:');
+        Object.entries(httpErrors.byStatus)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([status, count]) => {
+            const pct = ((count / httpErrors.total) * 100).toFixed(1);
+            const icon = status === '401' ? '✓' : status >= '500' ? '❌' : '⚠️ ';
+            console.log(`   ${icon} ${status}: ${count} (${pct}%)`);
+          });
+      }
+      
+      // Cálculo da taxa ajustada (sem 401)
+      const nonAuthFailures = httpErrors.total - httpErrors.byType.expectedAuth;
+      const adjustedRate = ((nonAuthFailures / totalReqs) * 100).toFixed(2);
+      
+      console.log('\n   📈 TAXA AJUSTADA (sem 401 esperados):');
+      console.log(`      ${nonAuthFailures}/${totalReqs} (${adjustedRate}%)`);
+      
+      // Análise e recomendações
+      console.log('\n   💡 ANÁLISE:');
+      if (httpErrors.byType.networkErrors > httpErrors.total * 0.5) {
+        console.log('      ⚠️  Maioria das falhas são de rede/timeout');
+        console.log('      → Considere: reduzir VUs, aumentar timeouts, verificar recursos do sistema');
+      }
+      if (httpErrors.byType.serverErrors > 0) {
+        console.log('      ❌ Erros 5xx detectados - problema na API');
+        console.log('      → Verifique logs da aplicação');
+      }
+      if (parseFloat(adjustedRate) > 10) {
+        console.log('      ⚠️  Taxa ajustada acima de 10% - ambiente sobrecarregado');
+        console.log('      → Ambiente local pode não suportar esta carga');
+      } else if (parseFloat(adjustedRate) > 5) {
+        console.log('      ⚠️  Taxa ajustada entre 5-10% - instabilidade moderada');
+        console.log('      → Monitorar em próximas execuções');
+      } else {
+        console.log('      ✓ Taxa ajustada aceitável para ambiente local');
+      }
+    }
+    console.log('');
   }
 
   // === STATUS FINAL ===
