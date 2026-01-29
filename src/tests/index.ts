@@ -134,19 +134,16 @@ export const options: Options = {
 /**
  * Função principal de execução do teste
  * Executa os cenários de usuários e produtos em paralelo
+ * 
+ * NOTA: Sleeps de 0.5s foram adicionados dentro de cada função de teste
+ * para simular "think time" realista de usuários entre requisições.
  */
 export default function () {
-  // Executa teste de usuários
+  // Executa teste de usuários (com sleeps internos)
   userScenario();
   
-  // Pequeno delay entre requisições para simular comportamento real
-  sleep(1);
-  
-  // Executa teste de produtos
+  // Executa teste de produtos (com sleeps internos)
   productScenario();
-  
-  // Delay antes da próxima iteração
-  sleep(1);
 }
 
 /**

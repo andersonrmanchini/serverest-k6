@@ -1,4 +1,4 @@
-import { check, group } from 'k6';
+import { check, group, sleep } from 'k6';
 import { UserApiService } from '../services/user.api.service';
 import { generateFakeUser } from '../utils/data.factory';
 import { checkRequest } from '../utils/checks';
@@ -44,6 +44,9 @@ export function listUsersTest() {
         }
       }
     });
+    
+    // Simula tempo de processamento do usuário (think time)
+    sleep(0.5);
   });
 }
 
@@ -81,6 +84,9 @@ export function getUserByIdTest(userId?: string) {
           }
         }
       });
+      
+      // Simula tempo de processamento do usuário (think time)
+      sleep(0.5);
     }
   });
 }
@@ -113,6 +119,9 @@ export function createUserTest() {
         }
       }
     });
+    
+    // Simula tempo de processamento do usuário (think time)
+    sleep(0.5);
   });
 }
 
@@ -128,6 +137,9 @@ export function validateErrorRate() {
       'status is 2xx': (r) => r.status >= 200 && r.status < 300,
       'no connection error': (r) => r.status !== 0
     });
+    
+    // Simula tempo de processamento do usuário (think time)
+    sleep(0.5);
   });
 }
 
