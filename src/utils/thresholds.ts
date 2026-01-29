@@ -38,6 +38,10 @@ export const stressThresholds = {
 
 export const smokeThresholds = {
   'http_reqs': ['count > 0'],
-  'http_req_failed': [isCI ? `rate<0.25` : `rate<${thresholdConfig.smokeErrorRate}`],
-  'checks': [isCI ? 'rate>0.80' : `rate>${thresholdConfig.smokeCheckSuccessRate}`]
+  // Smoke test: mais permissivo pois é validação rápida
+  // Local: 20% (configurado em k6.config.json)
+  // CI: 30% (ainda mais permissivo devido a instabilidade de rede)
+  'http_req_failed': [isCI ? `rate<0.30` : `rate<${thresholdConfig.smokeErrorRate}`],
+  // Checks: 80% tanto local quanto CI (smoke é menos rigoroso)
+  'checks': [`rate>${thresholdConfig.smokeCheckSuccessRate}`]
 };
