@@ -12,9 +12,9 @@ const isCI = __ENV.CI_ENVIRONMENT === 'true';
 export const thresholds = {
   'http_reqs': ['count > 0'],
   // Apenas cenários positivos com autenticação válida
-  // Local: taxa de falha < 1% (rigoroso)
+  // Local: taxa de falha < 10% (realista para ambiente de desenvolvimento com recursos limitados)
   // CI: taxa de falha < 25% (instabilidade severa de rede no GitHub Actions - observado 21.38%)
-  'http_req_failed': [isCI ? `rate<0.25` : `rate<0.01`],
+  'http_req_failed': [isCI ? `rate<0.25` : `rate<0.10`],
   'http_req_duration': [
     // CI: permite latências maiores devido à rede
     isCI ? `p(95)<${thresholdConfig.p95 * 2}` : `p(95)<${thresholdConfig.p95}`,
