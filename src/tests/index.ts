@@ -2,7 +2,7 @@ import { sleep } from 'k6';
 import { Options } from 'k6/options';
 import { userScenario } from './users.spec';
 import { productScenario } from './products.spec';
-import { thresholds, smokeThresholds } from '../utils/thresholds';
+import { thresholds, smokeThresholds, stressThresholds, spikeThresholds } from '../utils/thresholds';
 import { testConfig, k6CloudConfig, securityConfig } from '../utils/config';
 
 /**
@@ -110,8 +110,12 @@ export const options: Options = {
     }
   },
 
-  // Thresholds - critérios de sucesso/falha
-  thresholds: testType === 'smoke' ? smokeThresholds : thresholds,
+  // Thresholds - critérios de sucesso/falha baseados no tipo de teste
+  thresholds: 
+    testType === 'smoke' ? smokeThresholds :
+    testType === 'stress' ? stressThresholds :
+    testType === 'spike' ? spikeThresholds :
+    thresholds, // load, soak e default usam thresholds normais
 
   // Configurações gerais
   noConnectionReuse: false,

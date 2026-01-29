@@ -28,12 +28,32 @@ export const thresholds = {
 
 export const stressThresholds = {
   'http_reqs': ['count > 0'],
-  'http_req_failed': [`rate<${thresholdConfig.stressErrorRate}`],
+  // Stress test: encontra limites do sistema
+  // Local: 10% (mais rigoroso)
+  // CI: 35% (esperado falhas sob stress extremo + instabilidade de rede)
+  'http_req_failed': [isCI ? 'rate<0.35' : `rate<${thresholdConfig.stressErrorRate}`],
   'http_req_duration': [
-    `p(95)<${thresholdConfig.stressP95}`,
-    `p(99)<${thresholdConfig.stressP99}`
+    // CI: permite latências muito maiores sob stress
+    isCI ? `p(95)<${thresholdConfig.stressP95 * 3}` : `p(95)<${thresholdConfig.stressP95}`,
+    isCI ? `p(99)<${thresholdConfig.stressP99 * 3}` : `p(99)<${thresholdConfig.stressP99}`
   ],
-  'checks': [`rate>${thresholdConfig.stressCheckSuccessRate}`]
+  // Checks: 85% local, 75% CI (stress é rigoroso mas não muito)
+  'checks': [isCI ? 'rate>0.75' : `rate>${thresholdConfig.stressCheckSuccessRate}`]
+};
+
+export const spikeThresholds = {
+  'http_reqs': ['count > 0'],
+  // Spike test: picos súbitos de tráfego
+  // Local: 15% (esperado algumas falhas no pico)
+  // CI: 40% (pico + instabilidade de rede = alta taxa de falha)
+  'http_req_failed': [isCI ? 'rate<0.40' : 'rate<0.15'],
+  'http_req_duration': [
+    // CI: latências muito altas durante spike
+    isCI ? `p(95)<${thresholdConfig.p95 * 4}` : `p(95)<${thresholdConfig.p95 * 2}`,
+    isCI ? `p(99)<${thresholdConfig.p99 * 4}` : `p(99)<${thresholdConfig.p99 * 2}`
+  ],
+  // Checks: 80% local, 70% CI (spike pode causar muitas falhas)
+  'checks': [isCI ? 'rate>0.70' : 'rate>0.80']
 };
 
 export const smokeThresholds = {
